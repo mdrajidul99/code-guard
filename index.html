@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeGuard – Website Source Code Protector &amp; Obfuscator</title>
+    <meta name="description" content="Protect and obfuscate your website source code with CodeGuard. Minify HTML, CSS and JavaScript, add domain lock, and download protected HTML online for free.">
+    <meta name="keywords" content="website source code protection, website code protector, HTML code protector, HTML obfuscator, JavaScript obfuscator, source code obfuscator, website code obfuscator, source code protection tool, website source protection, code obfuscation tool, free HTML obfuscator, free JavaScript obfuscator, domain lock website code security, web source code protection, HTML minifier, CSS minifier, JavaScript minifier, HTML CSS JS protector, HTML encoder, website code security tool, protect HTML source code, protect JavaScript source code, online code protector, free code protection tool">
+    <meta name="author" content="MRS Engineers BD">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://code-guard.blogspot.com/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://code-guard.blogspot.com/">
+    <meta property="og:title" content="CodeGuard – Website Source Code Protector &amp; Obfuscator">
+    <meta property="og:description" content="Protect and obfuscate your website source code with CodeGuard. Minify HTML, CSS and JavaScript, add domain lock, and download protected HTML online for free.">
+    <meta property="og:image" content="https://i.postimg.cc/SRcj5Sr0/Code-Guard-Logo.png">
+    <meta property="og:site_name" content="CodeGuard">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CodeGuard – Website Source Code Protector &amp; Obfuscator">
+    <meta name="twitter:description" content="Protect and obfuscate your website source code with CodeGuard. Minify HTML, CSS and JavaScript, add domain lock, and download protected HTML online for free.">
+    <meta name="twitter:image" content="https://i.postimg.cc/SRcj5Sr0/Code-Guard-Logo.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/SRcj5Sr0/Code-Guard-Logo.png">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            950: '#082f49',
+                        },
+                        dark: {
+                            bg: '#090d16',
+                            card: '#0f172a',
+                            border: '#1e293b',
+                            hover: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- JS Obfuscator CDN (Fallback Handled in JS) -->
+    <script src="https://cdn.jsdelivr.net/npm/javascript-obfuscator@4.1.0/dist/index.browser.js" defer></script>
+
+    <style>
+        /* Custom scrollbars and sleek dark styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #0284c7;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #0284c7;
+        }
+    </style>
+
+    <!-- Structured Data JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "CodeGuard",
+      "url": "https://code-guard.blogspot.com/",
+      "description": "Client-Side Website Source Code Protection & Obfuscation Tool",
+      "applicationCategory": "Developer Application",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "MRS Engineers BD",
+        "email": "mrs.engineers.bd26@gmail.com"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is CodeGuard?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "CodeGuard is a free client-side tool designed to help developers protect, obfuscate, minify, and domain-lock their frontend website source code."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does website source code protection work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It transforms plain HTML, CSS, and JS into minified, obfuscated, and runtime-decoded structures, making it significantly harder to inspect or reuse."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does CodeGuard upload my source code to a server?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "CodeGuard processes submitted source code locally in your browser and does not intentionally upload it to its own server. Third-party assets or ads may still make normal network requests."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can CodeGuard completely hide HTML source code?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No tool can make client-side code entirely invisible because the browser must parse it to render the page. CodeGuard makes casual inspection and copying much harder."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is JavaScript obfuscation?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JavaScript obfuscation rewrites source code into complex, unreadable forms while preserving original functionality."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is Domain Lock?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Domain Lock binds your protected output to the configured hostname (treating www and non-www as the same host). If opened elsewhere, execution is halted."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Base64 encryption?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No, Base64 is an encoding mechanism, not encryption. It prevents immediate human readability but is fully reversible."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I use CodeGuard with GitHub Pages or Blogger?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! CodeGuard generates standard, valid static HTML output suitable for GitHub Pages, Blogger, static hosts, and custom landing pages."
+          }
+        }
+      ]
+    }
+    </script>
+</head>
+<body class="bg-[#090d16] text-slate-200 antialiased font-sans selection:bg-sky-500 selection:text-white flex flex-col min-h-screen">
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="sticky top-0 z-40 w-full border-b border-slate-800/80 glass-panel">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Logo & Brand -->
+            <a href="#" class="flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-lg p-1">
+                <img src="https://i.postimg.cc/SRcj5Sr0/Code-Guard-Logo.png" alt="CodeGuard Logo" class="h-9 w-9 object-contain rounded-md transition-transform group-hover:scale-105" loading="eager">
+                <div class="flex flex-col">
+                    <span class="font-bold text-lg text-white tracking-tight group-hover:text-sky-400 transition-colors">CodeGuard</span>
+                    <span class="text-[10px] text-slate-400 font-mono -mt-1">by MRS Engineers BD</span>
+                </div>
+            </a>
+
+            <!-- Desktop Nav -->
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300" aria-label="Main Navigation">
+                <a href="#tool-workspace" class="hover:text-sky-400 transition-colors">Protection Tool</a>
+                <a href="#how-it-works" class="hover:text-sky-400 transition-colors">How It Works</a>
+                <a href="#features" class="hover:text-sky-400 transition-colors">Features</a>
+                <a href="#security" class="hover:text-sky-400 transition-colors">Security</a>
+                <a href="#faq" class="hover:text-sky-400 transition-colors">FAQ</a>
+                <a href="#contact" class="hover:text-sky-400 transition-colors">Contact</a>
+            </nav>
+
+            <!-- CTA Button -->
+            <div class="hidden md:flex items-center">
+                <a href="#tool-workspace" class="px-4 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-500 rounded-lg shadow-lg shadow-sky-600/20 transition-all transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sky-400">
+                    Protect Code Now
+                </a>
+            </div>
+
+            <!-- Mobile Hamburger Button -->
+            <button id="mobile-menu-btn" type="button" aria-label="Toggle Navigation Menu" class="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <svg id="menu-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                <svg id="menu-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <!-- Mobile Menu Drawer -->
+        <div id="mobile-menu" class="hidden md:hidden border-b border-slate-800 bg-slate-900/95 backdrop-blur-lg px-4 pt-2 pb-6 space-y-3">
+            <a href="#tool-workspace" class="mobile-nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:bg-slate-800 hover:text-sky-400">Protection Tool</a>
+            <a href="#how-it-works" class="mobile-nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:bg-slate-800 hover:text-sky-400">How It Works</a>
+            <a href="#features" class="mobile-nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:bg-slate-800 hover:text-sky-400">Features</a>
+            <a href="#security" class="mobile-nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:bg-slate-800 hover:text-sky-400">Security</a>
+            <a href="#faq" class="mobile-nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:bg-slate-800 hover:text-sky-400">FAQ</a>
+            <a href="#contact" class="mobile-nav-link block px-3 py-2 rounded-md text-base font-medium text-slate-200 hover:bg-slate-800 hover:text-sky-400">Contact</a>
+            <a href="#tool-workspace" class="mobile-nav-link block w-full text-center mt-4 px-4 py-2.5 text-sm font-semibold text-white bg-sky-600 rounded-lg shadow-md hover:bg-sky-500">Protect Code Now</a>
+        </div>
+    </header>
+
+    <main class="flex-grow">
+        <!-- HERO SECTION -->
+        <section class="relative pt-12 pb-16 md:pt-16 md:pb-20 overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                <!-- Badge -->
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-950/80 border border-sky-800/50 text-sky-400 text-xs font-semibold uppercase tracking-wider mb-6">
+                    <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+                    FREE • BROWSER-BASED • NO LOGIN
+                </div>
+                <!-- H1 -->
+                <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight max-w-4xl mx-auto leading-tight">
+                    Protect Your Website <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-500">Source Code</span>
+                </h1>
+                <!-- Supporting Text -->
+                <p class="mt-4 text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                    Minify, obfuscate, encode, and domain-lock your HTML, CSS, and JavaScript with CodeGuard. Keep your frontend implementation harder to inspect and copy.
+                </p>
+                <!-- CTA Buttons -->
+                <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="#tool-workspace" class="w-full sm:w-auto px-6 py-3 text-sm font-bold text-white bg-sky-600 hover:bg-sky-500 rounded-xl shadow-lg shadow-sky-600/25 transition-all transform hover:-translate-y-0.5 text-center focus:outline-none focus:ring-2 focus:ring-sky-400">
+                        Protect Code Now
+                    </a>
+                    <a href="#how-it-works" class="w-full sm:w-auto px-6 py-3 text-sm font-bold text-slate-300 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:text-white rounded-xl transition-all text-center focus:outline-none focus:ring-2 focus:ring-slate-400">
+                        How It Works
+                    </a>
+                </div>
+                <!-- Trust Indicators -->
+                <div class="mt-10 flex flex-wrap justify-center gap-4 sm:gap-8 text-xs sm:text-sm text-slate-400 font-medium">
+                    <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> No Login Required</span>
+                    <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Browser-Based Processing</span>
+                    <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> No Code Upload</span>
+                    <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Domain Lock</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ADSTERRA AD AREA (DESKTOP / MOBILE TOP) -->
+        <div class="max-w-7xl mx-auto px-4 mb-8 flex justify-center overflow-hidden">
+            <!-- Desktop 728x90 -->
+            <div class="hidden md:block w-[728px] h-[90px] bg-slate-900/50 border border-slate-800 rounded flex items-center justify-center text-xs text-slate-500">
+                <script type="text/javascript">
+                    atOptions = {
+                        'key' : '8c0f431c498330cfdcd25eac48ec9a26',
+                        'format' : 'iframe',
+                        'height' : 90,
+                        'width' : 728,
+                        'params' : {}
+                    };
+                </script>
+                <script type="text/javascript" src="//www.highrevenueformat.com/8c0f431c498330cfdcd25eac48ec9a26/invoke.js"></script>
+            </div>
+            <!-- Mobile 320x50 -->
+            <div class="block md:hidden w-[320px] h-[50px] bg-slate-900/50 border border-slate-800 rounded flex items-center justify-center text-xs text-slate-500">
+                <script type="text/javascript">
+                    atOptions = {
+                        'key' : '9c9b38397d3cbd0116d4ae1aedbd6ed4',
+                        'format' : 'iframe',
+                        'height' : 50,
+                        'width' : 320,
+                        'params' : {}
+                    };
+                </script>
+                <script type="text/javascript" src="//www.highrevenueformat.com/9c9b38397d3cbd0116d4ae1aedbd6ed4/invoke.js"></script>
+            </div>
+        </div>
+
+        <!-- MAIN TOOL WORKSPACE SECTION -->
+        <section id="tool-workspace" class="py-10 bg-slate-950/60 border-y border-slate-800/80 scroll-mt-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Section Header -->
+                <div class="text-center max-w-3xl mx-auto mb-10">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white">CodeGuard Protection Workspace</h2>
+                    <p class="text-slate-400 text-sm sm:text-base mt-2">
+                        Add your website domain, paste your frontend source code, configure protection, and generate your protected HTML.
+                    </p>
+                </div>
+
+                <!-- Step Indicator -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+                    <div class="flex items-center gap-3 p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+                        <span class="w-8 h-8 rounded-lg bg-sky-950 text-sky-400 font-bold text-sm flex items-center justify-center border border-sky-800/50">01</span>
+                        <span class="text-xs sm:text-sm font-semibold text-slate-200">Website Domain</span>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+                        <span class="w-8 h-8 rounded-lg bg-sky-950 text-sky-400 font-bold text-sm flex items-center justify-center border border-sky-800/50">02</span>
+                        <span class="text-xs sm:text-sm font-semibold text-slate-200">Source Code</span>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+                        <span class="w-8 h-8 rounded-lg bg-sky-950 text-sky-400 font-bold text-sm flex items-center justify-center border border-sky-800/50">03</span>
+                        <span class="text-xs sm:text-sm font-semibold text-slate-200">Protection Config</span>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 bg-slate-900/80 border border-slate-800 rounded-xl">
+                        <span class="w-8 h-8 rounded-lg bg-sky-950 text-sky-400 font-bold text-sm flex items-center justify-center border border-sky-800/50">04</span>
+                        <span class="text-xs sm:text-sm font-semibold text-slate-200">Protected Output</span>
+                    </div>
+                </div>
+
+                <!-- MAIN WORKSPACE GRID -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    
+                    <!-- LEFT COLUMN: Inputs & Configurations (7 cols) -->
+                    <div class="lg:col-span-7 space-y-6">
+                        
+                        <!-- 1. Domain Input Card -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                            <label for="domain-input" class="block text-sm font-bold text-white mb-1">
+                                Website Domain / Primary URL <span class="text-slate-500 font-normal text-xs">(Optional for test, required for Lock)</span>
+                            </label>
+                            <div class="relative rounded-lg shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.657-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.657-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                                </div>
+                                <input type="text" id="domain-input" placeholder="https://example.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent placeholder-slate-600 transition-all">
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-2 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                CodeGuard does not remotely fetch your website source. Paste your source code manually below. Localhost/127.0.0.1 is permitted for dev testing.
+                            </p>
+                        </div>
+
+                        <!-- 2. Source Code Editor Card -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col">
+                            <div class="flex items-center justify-between mb-3">
+                                <label for="source-code" class="text-sm font-bold text-white flex items-center gap-2">
+                                    Complete Website Source Code
+                                </label>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="btn-paste-source" class="px-2.5 py-1 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors">Paste</button>
+                                    <button type="button" id="btn-clear-source" class="px-2.5 py-1 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 hover:text-white rounded-lg border border-slate-700 transition-colors">Clear</button>
+                                </div>
+                            </div>
+                            <textarea id="source-code" rows="12" placeholder="Paste your complete HTML, CSS and JavaScript source code here..." class="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-y placeholder-slate-600 leading-relaxed"></textarea>
+                            
+                            <!-- Editor Live Stats -->
+                            <div class="mt-3 flex items-center justify-between text-[11px] font-mono text-slate-400 bg-slate-950/60 px-3 py-1.5 rounded-lg border border-slate-800/80">
+                                <span>Characters: <strong id="stat-chars" class="text-slate-200">0</strong></span>
+                                <span>Lines: <strong id="stat-lines" class="text-slate-200">0</strong></span>
+                                <span>Size: <strong id="stat-size" class="text-slate-200">0 KB</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- 3. Protection Presets & Settings -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-6">
+                            <!-- Presets -->
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-sm font-bold text-white">Protection Presets</h3>
+                                    <span class="text-xs text-slate-400">Quick Configuration</span>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button type="button" id="preset-basic" class="preset-btn px-3 py-2 text-xs font-semibold rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:border-sky-500 transition-all">Basic</button>
+                                    <button type="button" id="preset-advanced" class="preset-btn px-3 py-2 text-xs font-semibold rounded-xl border border-sky-500 bg-sky-950/50 text-sky-400 font-bold transition-all">Advanced</button>
+                                    <button type="button" id="preset-maximum" class="preset-btn px-3 py-2 text-xs font-semibold rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:border-sky-500 transition-all">Maximum</button>
+                                </div>
+                            </div>
+
+                            <hr class="border-slate-800">
+
+                            <!-- Grouped Settings -->
+                            <div class="space-y-5">
+                                <!-- Group 1: MINIFICATION -->
+                                <div>
+                                    <span class="text-[10px] font-bold tracking-wider text-sky-400 uppercase">Minification</span>
+                                    <div class="mt-2 space-y-3">
+                                        <label class="flex items-start justify-between cursor-pointer group">
+                                            <div>
+                                                <div class="text-xs font-semibold text-slate-200 group-hover:text-white">HTML Minification</div>
+                                                <div class="text-[11px] text-slate-400">Safely remove redundant comments, whitespace, and linebreaks.</div>
+                                            </div>
+                                            <input type="checkbox" id="opt-html-minify" checked class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                        </label>
+                                        <label class="flex items-start justify-between cursor-pointer group">
+                                            <div>
+                                                <div class="text-xs font-semibold text-slate-200 group-hover:text-white">CSS Minification</div>
+                                                <div class="text-[11px] text-slate-400">Compress inline and block CSS styles safely.</div>
+                                            </div>
+                                            <input type="checkbox" id="opt-css-minify" checked class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                        </label>
+                                        <label class="flex items-start justify-between cursor-pointer group">
+                                            <div>
+                                                <div class="text-xs font-semibold text-slate-200 group-hover:text-white">JavaScript Minification</div>
+                                                <div class="text-[11px] text-slate-400">Strip JS comments and whitespace without corrupting code syntax.</div>
+                                            </div>
+                                            <input type="checkbox" id="opt-js-minify" checked class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Group 2: PROTECTION -->
+                                <div>
+                                    <span class="text-[10px] font-bold tracking-wider text-sky-400 uppercase">Protection &amp; Obfuscation</span>
+                                    <div class="mt-2 space-y-3">
+                                        <label class="flex items-start justify-between cursor-pointer group">
+                                            <div>
+                                                <div class="text-xs font-semibold text-slate-200 group-hover:text-white">JavaScript Obfuscation</div>
+                                                <div class="text-[11px] text-slate-400">Transform JS into complex, hard-to-read structure.</div>
+                                            </div>
+                                            <input type="checkbox" id="opt-js-obfuscate" checked class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                        </label>
+                                        <label class="flex items-start justify-between cursor-pointer group">
+                                            <div>
+                                                <div class="text-xs font-semibold text-slate-200 group-hover:text-white">Payload Encoding</div>
+                                                <div class="text-[11px] text-slate-400">Encode HTML document body into a runtime-decoded payload wrapper.</div>
+                                            </div>
+                                            <input type="checkbox" id="opt-payload-encode" checked class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                        </label>
+                                        <label class="flex items-start justify-between cursor-pointer group">
+                                            <div>
+                                                <div class="text-xs font-semibold text-slate-200 group-hover:text-white">Domain Lock</div>
+                                                <div class="text-[11px] text-slate-400">Restrict output execution to the configured hostname and its www variant.</div>
+                                            </div>
+                                            <input type="checkbox" id="opt-domain-lock" checked class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                        </label>
+                                        <label class="flex items-start justify-between cursor-pointer group">
+                                            <div>
+                                                <div class="text-xs font-semibold text-slate-200 group-hover:text-white">Basic Anti-Tamper</div>
+                                                <div class="text-[11px] text-slate-400">Add basic runtime integrity checks to deter manual manipulation.</div>
+                                            </div>
+                                            <input type="checkbox" id="opt-anti-tamper" class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Group 3: CASUAL DETERRENCE -->
+                                <div>
+                                    <span class="text-[10px] font-bold tracking-wider text-sky-400 uppercase">Casual Deterrence</span>
+                                    <div class="mt-2 space-y-3">
+                                        <label class="flex items-start justify-between cursor-pointer group">
+                                            <div>
+                                                <div class="text-xs font-semibold text-slate-200 group-hover:text-white">Disable Right Click</div>
+                                                <div class="text-[11px] text-slate-400">Discourage casual context-menu opening on rendered page.</div>
+                                            </div>
+                                            <input type="checkbox" id="opt-disable-rightclick" class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                        </label>
+                                        <label class="flex items-start justify-between cursor-pointer group">
+                                            <div>
+                                                <div class="text-xs font-semibold text-slate-200 group-hover:text-white">Disable Common Inspect Shortcuts</div>
+                                                <div class="text-[11px] text-slate-400">Intercept keyboard shortcuts (F12, Ctrl+Shift+I, Ctrl+U, etc.).</div>
+                                            </div>
+                                            <input type="checkbox" id="opt-disable-shortcuts" class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Generate Button -->
+                        <div>
+                            <button type="button" id="btn-generate" class="w-full py-4 px-6 text-base font-bold text-white bg-sky-600 hover:bg-sky-500 rounded-2xl shadow-xl shadow-sky-600/25 flex items-center justify-center gap-3 transition-all transform active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                <span id="btn-generate-text">Generate Protected Code</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: Output & Actions (5 cols) -->
+                    <div class="lg:col-span-5 space-y-6">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col h-full sticky top-20">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                    Protected HTML Output
+                                </h3>
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" id="btn-copy" disabled class="px-2.5 py-1 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700/50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 hover:text-white transition-colors">Copy</button>
+                                    <button type="button" id="btn-download" disabled class="px-2.5 py-1 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700/50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 hover:text-white transition-colors">Download</button>
+                                    <button type="button" id="btn-preview" disabled class="px-2.5 py-1 text-xs font-semibold text-slate-400 bg-slate-800 border border-slate-700/50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 hover:text-white transition-colors">Preview</button>
+                                    <button type="button" id="btn-reset" class="px-2.5 py-1 text-xs font-semibold text-rose-400 bg-rose-950/40 border border-rose-900/50 rounded-lg hover:bg-rose-900 hover:text-white transition-colors">Reset</button>
+                                </div>
+                            </div>
+
+                            <!-- Output Textarea Container -->
+                            <div class="relative flex-grow min-h-[300px]">
+                                <textarea id="output-code" readonly placeholder="Your protected HTML will appear here after generation." class="w-full h-full min-h-[300px] p-4 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-emerald-400 focus:outline-none resize-y placeholder-slate-600 leading-relaxed"></textarea>
+                            </div>
+
+                            <!-- Output Metrics -->
+                            <div class="mt-4 pt-4 border-t border-slate-800 grid grid-cols-3 gap-2 text-center">
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                                    <div class="text-[10px] text-slate-500 uppercase font-bold">Original</div>
+                                    <div id="metric-original" class="text-xs font-mono font-semibold text-slate-300 mt-0.5">0 KB</div>
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                                    <div class="text-[10px] text-slate-500 uppercase font-bold">Protected</div>
+                                    <div id="metric-protected" class="text-xs font-mono font-semibold text-emerald-400 mt-0.5">0 KB</div>
+                                </div>
+                                <div class="bg-slate-950 p-2 rounded-lg border border-slate-800">
+                                    <div class="text-[10px] text-slate-500 uppercase font-bold">Size Change</div>
+                                    <div id="metric-change" class="text-xs font-mono font-semibold text-sky-400 mt-0.5">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECURITY TRANSPARENCY SECTION -->
+        <section id="security" class="py-16 bg-slate-900/40 border-b border-slate-800/80 scroll-mt-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="bg-slate-900 border border-sky-900/40 rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div class="max-w-3xl">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-950 text-sky-400 text-xs font-bold uppercase mb-4">
+                            Security First
+                        </div>
+                        <h2 class="text-2xl font-bold text-white mb-3">Client-Side Security Transparency</h2>
+                        <p class="text-slate-300 text-sm leading-relaxed mb-4">
+                            CodeGuard can help make source code harder to casually inspect and copy. However, because web browsers must execute client-side HTML, CSS, and JavaScript, advanced technical users can still inspect runtime DOM, network traffic, and memory execution using developer tools.
+                        </p>
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            CodeGuard provides deterrence and obfuscation, not absolute client-side secrecy. Always keep private API keys, database credentials, and critical business logic strictly on secure backend servers.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURES SECTION -->
+        <section id="features" class="py-16 bg-slate-950/80 border-b border-slate-800/80 scroll-mt-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-12">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white">Engineered for Web Developers</h2>
+                    <p class="text-slate-400 text-sm mt-2">Comprehensive frontend protection mechanisms in a unified client-side suite.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-sky-950 flex items-center justify-center text-sky-400 mb-4 border border-sky-800/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-2">HTML &amp; CSS Minification</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Strips extra whitespaces and redundant structure safely without altering document layout or stylesheet rules.</p>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-sky-950 flex items-center justify-center text-sky-400 mb-4 border border-sky-800/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-2">JavaScript Obfuscation</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Rewrites JavaScript into a harder-to-read form while preserving its runtime behavior when the source is compatible with the obfuscator.</p>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-sky-950 flex items-center justify-center text-sky-400 mb-4 border border-sky-800/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.657-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.657-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-2">Domain Lock</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Binds code execution to the configured hostname, treating the www and non-www forms as the same host.</p>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-sky-950 flex items-center justify-center text-sky-400 mb-4 border border-sky-800/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-2">Payload Encoding</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Wraps full HTML structure inside a safe runtime-decoded browser container to prevent quick text scanning.</p>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-sky-950 flex items-center justify-center text-sky-400 mb-4 border border-sky-800/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-2">Privacy-Focused</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Code transformation runs in your browser. CodeGuard does not provide a backend service for storing or inspecting submitted source code.</p>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-sky-950 flex items-center justify-center text-sky-400 mb-4 border border-sky-800/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-2">Instant Live Preview</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Test generated protected HTML documents in real-time in an isolated tab before pushing to production.</p>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-sky-950 flex items-center justify-center text-sky-400 mb-4 border border-sky-800/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-2">One-Click Export</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Download a clean, production-ready `.html` file ready for instant deployment to GitHub Pages or static hosts.</p>
+                    </div>
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:border-slate-700 transition-colors">
+                        <div class="w-10 h-10 rounded-xl bg-sky-950 flex items-center justify-center text-sky-400 mb-4 border border-sky-800/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-2">No Account Needed</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Zero registration or login forms. Access complete tool functionalities immediately without friction.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOW IT WORKS SECTION -->
+        <section id="how-it-works" class="py-16 bg-slate-900/30 border-b border-slate-800/80 scroll-mt-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-12">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white">How CodeGuard Works</h2>
+                    <p class="text-slate-400 text-sm mt-2">Four simple steps to secure your client-side assets.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 relative">
+                        <span class="text-3xl font-extrabold text-sky-500/20 absolute top-4 right-4">01</span>
+                        <h3 class="text-sm font-bold text-white mb-2">Enter Domain</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Provide your target website URL to construct custom Domain Lock restrictions.</p>
+                    </div>
+                    <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 relative">
+                        <span class="text-3xl font-extrabold text-sky-500/20 absolute top-4 right-4">02</span>
+                        <h3 class="text-sm font-bold text-white mb-2">Paste Code</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Insert your HTML, CSS, and inline or embedded JavaScript source code directly.</p>
+                    </div>
+                    <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 relative">
+                        <span class="text-3xl font-extrabold text-sky-500/20 absolute top-4 right-4">03</span>
+                        <h3 class="text-sm font-bold text-white mb-2">Configure</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Select minification level, obfuscation modes, payload encoding, and keyboard deterrence.</p>
+                    </div>
+                    <div class="bg-slate-900/80 p-5 rounded-xl border border-slate-800 relative">
+                        <span class="text-3xl font-extrabold text-sky-500/20 absolute top-4 right-4">04</span>
+                        <h3 class="text-sm font-bold text-white mb-2">Generate &amp; Deploy</h3>
+                        <p class="text-slate-400 text-xs leading-relaxed">Download your protected HTML output and deploy it straight to your web host.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- USE CASES & LIMITATIONS SECTION -->
+        <section class="py-16 bg-slate-950/80 border-b border-slate-800/80">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Suitable Use Cases -->
+                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Suitable Use Cases
+                    </h3>
+                    <ul class="space-y-2.5 text-xs sm:text-sm text-slate-300">
+                        <li class="flex items-center gap-2">✓ Static landing pages &amp; marketing sites</li>
+                        <li class="flex items-center gap-2">✓ Personal portfolios &amp; developer CVs</li>
+                        <li class="flex items-center gap-2">✓ Client-side web tools &amp; utility widgets</li>
+                        <li class="flex items-center gap-2">✓ Static GitHub Pages &amp; Blogger custom templates</li>
+                        <li class="flex items-center gap-2">✓ Front-end UI template sales demos</li>
+                    </ul>
+                </div>
+                <!-- What CodeGuard Cannot Protect -->
+                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        What CodeGuard Cannot Protect
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-3">Never store sensitive backend assets on the client-side:</p>
+                    <ul class="space-y-2.5 text-xs sm:text-sm text-slate-300">
+                        <li class="flex items-center gap-2">✕ Server-side scripts (PHP, Node.js, Python, Ruby)</li>
+                        <li class="flex items-center gap-2">✕ Database passwords &amp; access credentials</li>
+                        <li class="flex items-center gap-2">✕ Private API secret keys &amp; authentication tokens</li>
+                        <li class="flex items-center gap-2">✕ Network traffic or server response payloads</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ SECTION -->
+        <section id="faq" class="py-16 bg-slate-900/40 border-b border-slate-800/80 scroll-mt-20">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-12">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white">Frequently Asked Questions</h2>
+                    <p class="text-slate-400 text-sm mt-2">Clear answers regarding CodeGuard and source code security.</p>
+                </div>
+                <div class="space-y-3" id="faq-accordion">
+                    <!-- FAQ Items -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>What is CodeGuard?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            CodeGuard is a free client-side tool designed to help developers protect, obfuscate, minify, and domain-lock their frontend website source code.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>How does website source code protection work?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            It transforms plain HTML, CSS, and JS into minified, obfuscated, and runtime-decoded structures, making it significantly harder to inspect or reuse.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>Does CodeGuard upload my source code?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            CodeGuard processes submitted source code locally in your browser and does not intentionally upload it to its own server. Third-party assets or ads may still make normal network requests.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>Can CodeGuard completely hide HTML source code?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            No tool can make client-side code entirely invisible because the browser must parse it to render the page. CodeGuard makes casual inspection and copying much harder.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>What is JavaScript obfuscation?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            JavaScript obfuscation rewrites source code into complex, unreadable forms while preserving original functionality.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>What is Domain Lock?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            Domain Lock binds your protected output to the configured hostname (treating www and non-www as the same host). If opened elsewhere, execution is halted.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>Is Base64 encryption?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            No, Base64 is an encoding mechanism, not encryption. It prevents immediate human readability but is fully reversible.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>Can I use CodeGuard with GitHub Pages or Blogger?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            Yes! CodeGuard generates standard, valid static HTML output suitable for GitHub Pages, Blogger, static hosts, and custom landing pages.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>Can CodeGuard protect PHP?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            No. PHP is executed on the server. CodeGuard protects browser-rendered frontend assets (HTML, CSS, JS).
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>Will protected code always work exactly like the original?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            Yes, provided valid input code is supplied. Always test your generated HTML using the Live Preview option before production deployment.
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                        <button type="button" class="faq-toggle w-full px-5 py-4 text-left flex justify-between items-center text-sm font-semibold text-white hover:bg-slate-800/50 focus:outline-none">
+                            <span>Do I need an account?</span>
+                            <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-content hidden px-5 pb-4 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">
+                            No registration or subscription is required.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT SECTION -->
+        <section id="contact" class="py-16 bg-slate-950/80 border-b border-slate-800/80 scroll-mt-20">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl">
+                    <h2 class="text-2xl font-bold text-white mb-2">Developer Contact &amp; Support</h2>
+                    <p class="text-slate-400 text-sm mb-6">Have questions or feedback? Get in touch with the development engineering team.</p>
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm font-mono">
+                        <span class="text-slate-300">Developer: <strong class="text-white">MRS Engineers BD</strong></span>
+                        <span class="hidden sm:inline text-slate-600">•</span>
+                        <span class="text-slate-300">Email: <strong class="text-sky-400">mrs.engineers.bd26@gmail.com</strong></span>
+                    </div>
+                    <div class="mt-6">
+                        <a href="mailto:mrs.engineers.bd26@gmail.com" class="inline-flex items-center gap-2 px-6 py-2.5 text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 rounded-xl shadow-md transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            Email Support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECOND AD AREA -->
+        <div class="max-w-7xl mx-auto px-4 my-10 flex justify-center overflow-hidden">
+            <div class="hidden md:block w-[728px] h-[90px] bg-slate-900/50 border border-slate-800 rounded flex items-center justify-center text-xs text-slate-500">
+                <script type="text/javascript">
+                    atOptions = {
+                        'key' : '8c0f431c498330cfdcd25eac48ec9a26',
+                        'format' : 'iframe',
+                        'height' : 90,
+                        'width' : 728,
+                        'params' : {}
+                    };
+                </script>
+                <script type="text/javascript" src="//www.highrevenueformat.com/8c0f431c498330cfdcd25eac48ec9a26/invoke.js"></script>
+            </div>
+            <div class="block md:hidden w-[320px] h-[50px] bg-slate-900/50 border border-slate-800 rounded flex items-center justify-center text-xs text-slate-500">
+                <script type="text/javascript">
+                    atOptions = {
+                        'key' : '9c9b38397d3cbd0116d4ae1aedbd6ed4',
+                        'format' : 'iframe',
+                        'height' : 50,
+                        'width' : 320,
+                        'params' : {}
+                    };
+                </script>
+                <script type="text/javascript" src="//www.highrevenueformat.com/9c9b38397d3cbd0116d4ae1aedbd6ed4/invoke.js"></script>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-950 border-t border-slate-800/80 py-12 text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                <!-- Left -->
+                <div class="flex items-center gap-3">
+                    <img src="https://i.postimg.cc/SRcj5Sr0/Code-Guard-Logo.png" alt="CodeGuard Logo" class="h-8 w-8 object-contain">
+                    <div>
+                        <div class="font-bold text-slate-200 text-sm">CodeGuard</div>
+                        <div class="text-[11px] text-slate-500">Website Source Code Protection &amp; Obfuscation Tool</div>
+                    </div>
+                </div>
+                <!-- Links -->
+                <div class="flex flex-wrap justify-center gap-6 font-medium">
+                    <a href="#tool-workspace" class="hover:text-white transition-colors">Home</a>
+                    <a href="#tool-workspace" class="hover:text-white transition-colors">Protection Tool</a>
+                    <a href="#how-it-works" class="hover:text-white transition-colors">How It Works</a>
+                    <a href="#features" class="hover:text-white transition-colors">Features</a>
+                    <a href="#security" class="hover:text-white transition-colors">Security</a>
+                    <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+                    <a href="#contact" class="hover:text-white transition-colors">Contact</a>
+                    <button type="button" id="link-privacy" class="hover:text-white transition-colors focus:outline-none">Privacy Policy</button>
+                    <button type="button" id="link-terms" class="hover:text-white transition-colors focus:outline-none">Terms of Service</button>
+                </div>
+            </div>
+
+            <hr class="border-slate-800/60">
+
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-slate-500">
+                <div>
+                    Developer: <span class="text-slate-400 font-semibold">MRS Engineers BD</span> (<a href="mailto:mrs.engineers.bd26@gmail.com" class="hover:underline">mrs.engineers.bd26@gmail.com</a>)
+                </div>
+                <div>
+                    &copy; 2026 CodeGuard. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- TOAST NOTIFICATION SYSTEM -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- PRIVACY POLICY MODAL -->
+    <div id="modal-privacy" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-base font-bold text-white">Privacy Policy</h3>
+                <button type="button" class="modal-close text-slate-400 hover:text-white p-1" data-modal="modal-privacy">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto text-xs text-slate-300 space-y-4 leading-relaxed">
+                <p><strong>Local Processing:</strong> All source code obfuscation, minification, and protection processing occur locally in your web browser. CodeGuard does not intentionally transmit, upload, or log your submitted source code on external servers.</p>
+                <p><strong>No Account Required:</strong> CodeGuard does not track user accounts or store personal identification data.</p>
+                <p><strong>Third-Party Content &amp; Ads:</strong> External assets or third-party advertisement providers (e.g., Adsterra) embedded on the website may make standard HTTP network requests and use tracking cookies according to their respective privacy policies.</p>
+                <p><strong>Security Recommendation:</strong> Users must avoid pasting production secret keys, passwords, or personal sensitive data into client-side code editors.</p>
+            </div>
+            <div class="px-6 py-3 border-t border-slate-800 bg-slate-950 text-right">
+                <button type="button" class="modal-close px-4 py-2 text-xs font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500" data-modal="modal-privacy">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TERMS OF SERVICE MODAL -->
+    <div id="modal-terms" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-base font-bold text-white">Terms of Service</h3>
+                <button type="button" class="modal-close text-slate-400 hover:text-white p-1" data-modal="modal-terms">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto text-xs text-slate-300 space-y-4 leading-relaxed">
+                <p><strong>Usage Permission:</strong> You must possess proper authorization and rights for any website source code submitted for processing using CodeGuard.</p>
+                <p><strong>As-Is Provision:</strong> CodeGuard is provided "as is" without express or implied warranty. While engineered to preserve code functionality, developers must thoroughly test generated output before pushing to live production environments.</p>
+                <p><strong>Security Limitations:</strong> Client-side protection mechanisms have inherent limitations. CodeGuard does not guarantee absolute secrecy or unhackability against advanced reverse-engineering techniques.</p>
+            </div>
+            <div class="px-6 py-3 border-t border-slate-800 bg-slate-950 text-right">
+                <button type="button" class="modal-close px-4 py-2 text-xs font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-500" data-modal="modal-terms">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+        });
+
+        function initApp() {
+            setupNavigation();
+            setupSourceStats();
+            setupPresets();
+            setupFAQ();
+            setupModals();
+            setupToolActions();
+        }
+
+        /* --- MOBILE NAVIGATION --- */
+        function setupNavigation() {
+            const btn = document.getElementById('mobile-menu-btn');
+            const menu = document.getElementById('mobile-menu');
+            const openIcon = document.getElementById('menu-icon-open');
+            const closeIcon = document.getElementById('menu-icon-close');
+            const links = document.querySelectorAll('.mobile-nav-link');
+
+            if (!btn || !menu) return;
+
+            btn.addEventListener('click', () => {
+                const isOpen = !menu.classList.contains('hidden');
+                if (isOpen) {
+                    menu.classList.add('hidden');
+                    openIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
+                } else {
+                    menu.classList.remove('hidden');
+                    openIcon.classList.add('hidden');
+                    closeIcon.classList.remove('hidden');
+                }
+            });
+
+            links.forEach(link => {
+                link.addEventListener('click', () => {
+                    menu.classList.add('hidden');
+                    openIcon.classList.remove('hidden');
+                    closeIcon.classList.add('hidden');
+                });
+            });
+        }
+
+        /* --- SOURCE EDITOR LIVE STATS --- */
+        function setupSourceStats() {
+            const textarea = document.getElementById('source-code');
+            if (!textarea) return;
+
+            const update = () => updateSourceStats(textarea.value);
+            textarea.addEventListener('input', update);
+            textarea.addEventListener('keyup', update);
+        }
+
+        function updateSourceStats(text) {
+            const charCount = text.length;
+            const lineCount = text === '' ? 0 : text.split('\n').length;
+            const bytes = new Blob([text]).size;
+            const kb = (bytes / 1024).toFixed(2);
+
+            document.getElementById('stat-chars').textContent = charCount.toLocaleString();
+            document.getElementById('stat-lines').textContent = lineCount.toLocaleString();
+            document.getElementById('stat-size').textContent = `${kb} KB`;
+        }
+
+        /* --- PROTECTION PRESETS --- */
+        function setupPresets() {
+            const btnBasic = document.getElementById('preset-basic');
+            const btnAdvanced = document.getElementById('preset-advanced');
+            const btnMaximum = document.getElementById('preset-maximum');
+
+            btnBasic?.addEventListener('click', () => applyPreset('basic'));
+            btnAdvanced?.addEventListener('click', () => applyPreset('advanced'));
+            btnMaximum?.addEventListener('click', () => applyPreset('maximum'));
+        }
+
+        function applyPreset(preset) {
+            const htmlMinify = document.getElementById('opt-html-minify');
+            const cssMinify = document.getElementById('opt-css-minify');
+            const jsMinify = document.getElementById('opt-js-minify');
+            const jsObfuscate = document.getElementById('opt-js-obfuscate');
+            const payloadEncode = document.getElementById('opt-payload-encode');
+            const domainLock = document.getElementById('opt-domain-lock');
+            const antiTamper = document.getElementById('opt-anti-tamper');
+            const rightClick = document.getElementById('opt-disable-rightclick');
+            const shortcuts = document.getElementById('opt-disable-shortcuts');
+
+            // Reset preset active states
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.className = 'preset-btn px-3 py-2 text-xs font-semibold rounded-xl border border-slate-800 bg-slate-950 text-slate-300 hover:border-sky-500 transition-all';
+            });
+
+            if (preset === 'basic') {
+                htmlMinify.checked = true;
+                cssMinify.checked = true;
+                jsMinify.checked = true;
+                jsObfuscate.checked = false;
+                payloadEncode.checked = false;
+                domainLock.checked = true;
+                antiTamper.checked = false;
+                rightClick.checked = false;
+                shortcuts.checked = false;
+                document.getElementById('preset-basic').className = 'preset-btn px-3 py-2 text-xs font-semibold rounded-xl border border-sky-500 bg-sky-950/50 text-sky-400 font-bold transition-all';
+                showToast('Applied Basic preset.', 'info');
+            } else if (preset === 'advanced') {
+                htmlMinify.checked = true;
+                cssMinify.checked = true;
+                jsMinify.checked = true;
+                jsObfuscate.checked = true;
+                payloadEncode.checked = true;
+                domainLock.checked = true;
+                antiTamper.checked = false;
+                rightClick.checked = false;
+                shortcuts.checked = false;
+                document.getElementById('preset-advanced').className = 'preset-btn px-3 py-2 text-xs font-semibold rounded-xl border border-sky-500 bg-sky-950/50 text-sky-400 font-bold transition-all';
+                showToast('Applied Advanced preset.', 'info');
+            } else if (preset === 'maximum') {
+                htmlMinify.checked = true;
+                cssMinify.checked = true;
+                jsMinify.checked = true;
+                jsObfuscate.checked = true;
+                payloadEncode.checked = true;
+                domainLock.checked = true;
+                antiTamper.checked = true;
+                rightClick.checked = true;
+                shortcuts.checked = true;
+                document.getElementById('preset-maximum').className = 'preset-btn px-3 py-2 text-xs font-semibold rounded-xl border border-sky-500 bg-sky-950/50 text-sky-400 font-bold transition-all';
+                showToast('Applied Maximum preset.', 'info');
+            }
+        }
+
+        /* --- FAQ ACCORDION --- */
+        function setupFAQ() {
+            const toggles = document.querySelectorAll('.faq-toggle');
+            toggles.forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    const content = toggle.nextElementSibling;
+                    const icon = toggle.querySelector('svg');
+                    const isHidden = content.classList.contains('hidden');
+
+                    // Close all
+                    document.querySelectorAll('.faq-content').forEach(c => c.classList.add('hidden'));
+                    document.querySelectorAll('.faq-toggle svg').forEach(i => i.classList.remove('rotate-180'));
+
+                    if (isHidden) {
+                        content.classList.remove('hidden');
+                        icon.classList.add('rotate-180');
+                    }
+                });
+            });
+        }
+
+        /* --- MODALS --- */
+        function setupModals() {
+            document.getElementById('link-privacy')?.addEventListener('click', () => openModal('modal-privacy'));
+            document.getElementById('link-terms')?.addEventListener('click', () => openModal('modal-terms'));
+
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-modal');
+                    closeModal(id);
+                });
+            });
+        }
+
+        function openModal(id) {
+            document.getElementById(id)?.classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id)?.classList.add('hidden');
+        }
+
+        /* --- TOOL ACTIONS & PIPELINE --- */
+        function setupToolActions() {
+            const btnPaste = document.getElementById('btn-paste-source');
+            const btnClear = document.getElementById('btn-clear-source');
+            const btnGenerate = document.getElementById('btn-generate');
+            const btnCopy = document.getElementById('btn-copy');
+            const btnDownload = document.getElementById('btn-download');
+            const btnPreview = document.getElementById('btn-preview');
+            const btnReset = document.getElementById('btn-reset');
+
+            btnPaste?.addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        document.getElementById('source-code').value = text;
+                        updateSourceStats(text);
+                        showToast('Pasted from clipboard.', 'success');
+                    }
+                } catch (e) {
+                    showToast('Clipboard read access denied.', 'error');
+                }
+            });
+
+            btnClear?.addEventListener('click', () => {
+                document.getElementById('source-code').value = '';
+                updateSourceStats('');
+            });
+
+            btnGenerate?.addEventListener('click', processSourceCode);
+            btnCopy?.addEventListener('click', copyOutput);
+            btnDownload?.addEventListener('click', downloadOutput);
+            btnPreview?.addEventListener('click', previewOutput);
+            btnReset?.addEventListener('click', resetTool);
+        }
+
+        /* DOMAIN VALIDATION & NORMALIZATION */
+        function normalizeHostname(rawInput) {
+            if (!rawInput || !rawInput.trim()) return null;
+            let val = rawInput.trim().toLowerCase();
+            if (!val.startsWith('http://') && !val.startsWith('https://')) {
+                val = 'https://' + val;
+            }
+            try {
+                const parsed = new URL(val);
+                return parsed.hostname;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        /* READ SETTINGS */
+        function readSettings() {
+            return {
+                domain: document.getElementById('domain-input').value.trim(),
+                htmlMinify: document.getElementById('opt-html-minify').checked,
+                cssMinify: document.getElementById('opt-css-minify').checked,
+                jsMinify: document.getElementById('opt-js-minify').checked,
+                jsObfuscate: document.getElementById('opt-js-obfuscate').checked,
+                payloadEncode: document.getElementById('opt-payload-encode').checked,
+                domainLock: document.getElementById('opt-domain-lock').checked,
+                antiTamper: document.getElementById('opt-anti-tamper').checked,
+                disableRightClick: document.getElementById('opt-disable-rightclick').checked,
+                disableShortcuts: document.getElementById('opt-disable-shortcuts').checked
+            };
+        }
+
+        /* MAIN GENERATION PIPELINE */
+        async function processSourceCode() {
+            const rawSource = document.getElementById('source-code').value;
+            const settings = readSettings();
+
+            if (!rawSource || !rawSource.trim()) {
+                showToast('Please paste your website source code.', 'warning');
+                return;
+            }
+
+            let targetHost = null;
+            if (settings.domainLock) {
+                if (!settings.domain) {
+                    showToast('Domain Lock requires a Website Domain URL.', 'warning');
+                    return;
+                }
+                targetHost = normalizeHostname(settings.domain);
+                if (!targetHost) {
+                    showToast('Please enter a valid website URL for Domain Lock.', 'error');
+                    return;
+                }
+            }
+
+            const btnGen = document.getElementById('btn-generate');
+            const btnGenText = document.getElementById('btn-generate-text');
+            btnGen.disabled = true;
+            btnGenText.textContent = 'Protecting Code...';
+
+            try {
+                // Short micro-delay to allow UI state update
+                await new Promise(r => setTimeout(r, 60));
+
+                let processedHTML = rawSource;
+
+                // 1. Minify inner HTML / CSS / JS if specified
+                processedHTML = processHTMLContent(processedHTML, settings);
+
+                // 2. Generate final wrapper / document structure
+                let finalDoc = buildFinalDocument(processedHTML, settings, targetHost);
+
+                // Display result
+                const outputArea = document.getElementById('output-code');
+                outputArea.value = finalDoc;
+
+                // Enable Action Buttons
+                document.getElementById('btn-copy').disabled = false;
+                document.getElementById('btn-download').disabled = false;
+                document.getElementById('btn-preview').disabled = false;
+
+                // Metrics
+                const origSize = new Blob([rawSource]).size;
+                const protSize = new Blob([finalDoc]).size;
+                const changePct = origSize === 0 ? 0 : (((protSize - origSize) / origSize) * 100).toFixed(1);
+
+                document.getElementById('metric-original').textContent = `${(origSize / 1024).toFixed(2)} KB`;
+                document.getElementById('metric-protected').textContent = `${(protSize / 1024).toFixed(2)} KB`;
+                document.getElementById('metric-change').textContent = `${changePct > 0 ? '+' : ''}${changePct}%`;
+
+                showToast('Protected HTML generated successfully!', 'success');
+            } catch (err) {
+                console.error(err);
+                showToast('Processing failed: ' + err.message, 'error');
+            } finally {
+                btnGen.disabled = false;
+                btnGenText.textContent = 'Generate Protected Code';
+            }
+        }
+
+        /* CONSERVATIVE HTML / CSS / JS PROCESSING */
+        function processHTMLContent(html, settings) {
+            let result = html;
+
+            // Process <style> blocks
+            if (settings.cssMinify) {
+                result = result.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (match, cssContent) => {
+                    const minifiedCSS = minifyCSS(cssContent);
+                    return match.replace(cssContent, minifiedCSS);
+                });
+            }
+
+            // Process <script> blocks
+            result = result.replace(/<script\b[^>]*>([\s\S]*?)\x3C\/script>/gi, (match, jsContent) => {
+                // Ignore empty or external src scripts
+                if (!jsContent || !jsContent.trim()) return match;
+                
+                let processedJS = jsContent;
+
+                if (settings.jsObfuscate) {
+                    processedJS = obfuscateJavaScript(processedJS);
+                } else if (settings.jsMinify) {
+                    processedJS = minifyJavaScript(processedJS);
+                }
+
+                return match.replace(jsContent, processedJS);
+            });
+
+            // Minify raw HTML shell structure (conservative)
+            if (settings.htmlMinify) {
+                result = minifyHTML(result);
+            }
+
+            return result;
+        }
+
+        function minifyHTML(html) {
+            // Safe removal of standard non-conditional comments
+            let minified = html.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');
+            // Collapse whitespace between tags
+            minified = minified.replace(/>\s+</g, '><');
+            return minified.trim();
+        }
+
+        function minifyCSS(css) {
+            return css
+                .replace(/\/\*[\s\S]*?\*\//g, '') // remove comments
+                .replace(/\s+/g, ' ')             // collapse whitespace
+                .replace(/\s*([{}:;,])\s*/g, '$1') // remove space around delimiters
+                .trim();
+        }
+
+        function minifyJavaScript(js) {
+            // Deliberately conservative: comment-like text can legally appear inside
+            // JavaScript strings/templates, so avoid regex-based comment stripping.
+            // This safe fallback preserves behavior when the external obfuscator is unavailable.
+            try {
+                return js
+                    .replace(/^[\t ]+|[\t ]+$/gm, '')
+                    .replace(/\n{3,}/g, '\n\n')
+                    .trim();
+            } catch (e) {
+                return js;
+            }
+        }
+
+        function obfuscateJavaScript(js) {
+            // Check availability of JavaScript Obfuscator library
+            if (typeof JavaScriptObfuscator !== 'undefined' && JavaScriptObfuscator.obfuscate) {
+                try {
+                    const res = JavaScriptObfuscator.obfuscate(js, {
+                        compact: true,
+                        controlFlowFlattening: false,
+                        deadCodeInjection: false,
+                        debugProtection: false,
+                        disableConsoleOutput: false,
+                        stringArray: true,
+                        stringArrayEncoding: ['base64'],
+                        stringArrayThreshold: 0.75
+                    });
+                    return res.getObfuscatedCode();
+                } catch (e) {
+                    console.warn('Obfuscator library error, fallback to minification', e);
+                    return minifyJavaScript(js);
+                }
+            }
+            return minifyJavaScript(js);
+        }
+
+        /* FINAL DOCUMENT BUILDER */
+        function buildFinalDocument(contentHTML, settings, targetHost) {
+            let scriptsToInject = [];
+
+            // 1. Domain Lock Code
+            if (settings.domainLock && targetHost) {
+                const cleanHost = targetHost.replace(/^www\./, '').toLowerCase();
+                const lockScript = `
+(function(){
+    var allowed = "${cleanHost}";
+    var curr = window.location.hostname.toLowerCase().replace(/^www\\./, '');
+    if (curr === "localhost" || curr === "127.0.0.1" || curr === "") return;
+    if (curr !== allowed) {
+        document.open();
+        document.write('<div style="background:#090d16;color:#f87171;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:20px;">' +
+            '<h1 style="font-size:24px;margin-bottom:8px;">Domain Not Authorized</h1>' +
+            '<p style="color:#94a3b8;font-size:14px;max-width:400px;">This protected website is restricted to its configured domain (' + allowed + ').</p>' +
+            '</div>');
+        document.close();
+        window.stop && window.stop();
+    }
+})();`;
+                scriptsToInject.push(settings.jsObfuscate ? obfuscateJavaScript(lockScript) : lockScript);
+            }
+
+            // 2. Anti-Tamper Deterrence
+            if (settings.antiTamper) {
+                const tamperScript = `
+(function(){
+    var t = function(){};
+    setInterval(function(){
+        var start = Date.now();
+        (function(){}).constructor("debugger")();
+        if(Date.now() - start > 100){ t(); }
+    }, 2000);
+})();`;
+                scriptsToInject.push(settings.jsObfuscate ? obfuscateJavaScript(tamperScript) : tamperScript);
+            }
+
+            // 3. Casual Deterrence (Right Click & Shortcuts)
+            if (settings.disableRightClick) {
+                const rcScript = `document.addEventListener("contextmenu", function(e){ e.preventDefault(); });`;
+                scriptsToInject.push(rcScript);
+            }
+
+            if (settings.disableShortcuts) {
+                const scScript = `
+document.addEventListener("keydown", function(e){
+    if (e.keyCode === 123 || 
+       (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
+       (e.ctrlKey && e.keyCode === 85)) {
+        e.preventDefault();
+        return false;
+    }
+});`;
+                scriptsToInject.push(scScript);
+            }
+
+            let injectedHeadCode = scriptsToInject.length > 0
+                ? '<script>\n' + scriptsToInject.join('\n') + '\n<\/script>'
+                : '';
+
+            // 4. Payload Encoding vs Direct HTML Output
+            if (settings.payloadEncode) {
+                // Encode source content safely in Base64
+                const utf8Bytes = new TextEncoder().encode(contentHTML);
+                let binaryStr = '';
+                for (let i = 0; i < utf8Bytes.length; i++) {
+                    binaryStr += String.fromCharCode(utf8Bytes[i]);
+                }
+                const encodedPayload = btoa(binaryStr);
+
+                // Construct self-decoding document wrapper
+                return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protected Website</title>
+${injectedHeadCode}
+</head>
+<body>
+<script>
+(function(){
+    var p = "${encodedPayload}";
+    function d(b64){
+        var bin = atob(b64);
+        var bytes = new Uint8Array(bin.length);
+        for(var i=0; i<bin.length; i++){ bytes[i] = bin.charCodeAt(i); }
+        return new TextDecoder().decode(bytes);
+    }
+    document.open();
+    document.write(d(p));
+    document.close();
+})();
+<\/script>
+</body>
+</html>`;
+            } else {
+                // Inject security scripts directly into original head/beginning
+                if (injectedHeadCode) {
+                    if (contentHTML.includes('<head>')) {
+                        return contentHTML.replace('<head>', '<head>\n' + injectedHeadCode);
+                    } else if (contentHTML.includes('<html>')) {
+                        return contentHTML.replace('<html>', '<html>\n<head>' + injectedHeadCode + '</head>');
+                    } else {
+                        return injectedHeadCode + '\n' + contentHTML;
+                    }
+                }
+                return contentHTML;
+            }
+        }
+
+        /* OUTPUT UTILITIES */
+        function copyOutput() {
+            const outputArea = document.getElementById('output-code');
+            if (!outputArea.value) return;
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(outputArea.value).then(() => {
+                    showToast('Protected HTML copied successfully.', 'success');
+                }).catch(() => fallbackCopy(outputArea.value));
+            } else {
+                fallbackCopy(outputArea.value);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const outputArea = document.getElementById('output-code');
+            outputArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Protected HTML copied successfully.', 'success');
+            } catch (err) {
+                showToast('Failed to copy output.', 'error');
+            }
+        }
+
+        function downloadOutput() {
+            const text = document.getElementById('output-code').value;
+            if (!text) return;
+
+            try {
+                const blob = new Blob([text], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'codeguard-protected.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Download started.', 'success');
+            } catch (e) {
+                showToast('Download failed.', 'error');
+            }
+        }
+
+        function previewOutput() {
+            const text = document.getElementById('output-code').value;
+            if (!text) return;
+
+            try {
+                let previewText = text;
+                const domainLockEnabled = document.getElementById('opt-domain-lock')?.checked;
+
+                if (domainLockEnabled) {
+                    // A local blob preview does not run on the user's deployment hostname.
+                    // Rebuild a preview-only copy without Domain Lock; copied/downloaded output stays protected.
+                    const source = document.getElementById('source-code').value;
+                    const previewSettings = readSettings();
+                    previewSettings.domainLock = false;
+                    const previewProcessed = processHTMLContent(source, previewSettings);
+                    previewText = buildFinalDocument(previewProcessed, previewSettings, null);
+                    showToast('Preview uses the current settings without Domain Lock. Downloaded output remains protected.', 'info');
+                }
+
+                const blob = new Blob([previewText], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const win = window.open(url, '_blank');
+                if (!win) {
+                    showToast('Please allow popups to launch preview.', 'warning');
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Preview launch failed: ' + e.message, 'error');
+            }
+        }
+
+        function resetTool() {
+            document.getElementById('domain-input').value = '';
+            document.getElementById('source-code').value = '';
+            document.getElementById('output-code').value = '';
+
+            updateSourceStats('');
+
+            document.getElementById('btn-copy').disabled = true;
+            document.getElementById('btn-download').disabled = true;
+            document.getElementById('btn-preview').disabled = true;
+
+            document.getElementById('metric-original').textContent = '0 KB';
+            document.getElementById('metric-protected').textContent = '0 KB';
+            document.getElementById('metric-change').textContent = '0%';
+
+            applyPreset('advanced');
+            showToast('Tool workspace reset.', 'info');
+        }
+
+        /* TOAST SYSTEM */
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            
+            let bgBorder = 'bg-slate-900 border-slate-700 text-slate-200';
+            if (type === 'success') bgBorder = 'bg-slate-900 border-emerald-500/50 text-emerald-300';
+            if (type === 'error') bgBorder = 'bg-slate-900 border-rose-500/50 text-rose-300';
+            if (type === 'warning') bgBorder = 'bg-slate-900 border-amber-500/50 text-amber-300';
+
+            toast.className = `p-3.5 rounded-xl border shadow-xl text-xs font-semibold flex items-center justify-between pointer-events-auto transition-all transform translate-y-2 opacity-0 ${bgBorder}`;
+            
+            toast.innerHTML = `
+                <span>${message}</span>
+                <button type="button" class="ml-4 text-slate-400 hover:text-white">&times;</button>
+            `;
+
+            toast.querySelector('button').addEventListener('click', () => {
+                toast.remove();
+            });
+
+            container.appendChild(toast);
+
+            // Animate In
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            // Auto dismiss
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
