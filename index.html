@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeGuard – Website Source Code Protector &amp; Obfuscator</title>
-    <meta name="description" content="Protect and obfuscate your website source code with CodeGuard. Minify HTML, CSS and JavaScript, add domain lock, and download protected HTML online for free.">
-    <meta name="keywords" content="website source code protection, website code protector, HTML code protector, HTML obfuscator, JavaScript obfuscator, source code obfuscator, website code obfuscator, source code protection tool, website source protection, code obfuscation tool, free HTML obfuscator, free JavaScript obfuscator, domain lock website code security, web source code protection, HTML minifier, CSS minifier, JavaScript minifier, HTML CSS JS protector, HTML encoder, website code security tool, protect HTML source code, protect JavaScript source code, online code protector, free code protection tool">
+    <title>CodeGuard – Free Website Source Code Protector &amp; HTML/JS Obfuscator</title>
+    <meta name="description" content="Free website source code protector and HTML obfuscator. Protect, minify and obfuscate HTML, CSS and JavaScript with domain lock and protected HTML export.">
+    <meta name="keywords" content="CodeGuard, website source code protector, website code protector, source code protection, source code obfuscator, website source code security, HTML source code protector, HTML code protector, HTML obfuscator, free HTML obfuscator, JavaScript obfuscator, JavaScript source code protector, CSS minifier, HTML minifier, JavaScript minifier, HTML CSS JS protector, website code obfuscator, web code protection tool, online code protector, free code protection tool, domain lock, domain locked HTML, protected HTML generator, frontend code protection, client side code protection, website code security, protect HTML source code, protect JavaScript source code, code protection tool, source code security tool, static website protection, GitHub Pages code protection, Blogger code protection, HTML encoder, JavaScript code protection">
     <meta name="author" content="MRS Engineers BD">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="https://mdrajidul99.github.io/code-guard/">
@@ -13,16 +13,19 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://mdrajidul99.github.io/code-guard/">
-    <meta property="og:title" content="CodeGuard – Website Source Code Protector &amp; Obfuscator">
-    <meta property="og:description" content="Protect and obfuscate your website source code with CodeGuard. Minify HTML, CSS and JavaScript, add domain lock, and download protected HTML online for free.">
+    <meta property="og:title" content="CodeGuard – Free Website Source Code Protector &amp; HTML/JS Obfuscator">
+    <meta property="og:description" content="Free website source code protector and HTML obfuscator. Protect, minify and obfuscate HTML, CSS and JavaScript with domain lock and protected HTML export.">
     <meta property="og:image" content="https://i.postimg.cc/SRcj5Sr0/Code-Guard-Logo.png">
     <meta property="og:site_name" content="CodeGuard">
+    <meta property="og:image:alt" content="CodeGuard Website Source Code Protector">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="CodeGuard – Website Source Code Protector &amp; Obfuscator">
-    <meta name="twitter:description" content="Protect and obfuscate your website source code with CodeGuard. Minify HTML, CSS and JavaScript, add domain lock, and download protected HTML online for free.">
+    <meta name="twitter:title" content="CodeGuard – Free Website Source Code Protector &amp; HTML/JS Obfuscator">
+    <meta name="twitter:description" content="Free website source code protector and HTML obfuscator. Protect, minify and obfuscate HTML, CSS and JavaScript with domain lock and protected HTML export.">
     <meta name="twitter:image" content="https://i.postimg.cc/SRcj5Sr0/Code-Guard-Logo.png">
+    <meta name="twitter:image:alt" content="CodeGuard Website Source Code Protector">
+    <meta name="theme-color" content="#090d16">
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://i.postimg.cc/SRcj5Sr0/Code-Guard-Logo.png">
@@ -105,6 +108,7 @@
       "description": "Client-Side Website Source Code Protection & Obfuscation Tool",
       "applicationCategory": "Developer Application",
       "operatingSystem": "Any",
+      "featureList": "HTML minification, CSS minification, JavaScript obfuscation, payload encoding, domain lock, anti-tamper deterrence, protected HTML export",
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -1264,12 +1268,25 @@
             }
 
             // Process <script> blocks
-            result = result.replace(/<script\b[^>]*>([\s\S]*?)\x3C\/script>/gi, (match, jsContent) => {
-                // Ignore empty or external src scripts
+            result = result.replace(/<script\b([^>]*)>([\s\S]*?)\x3C\/script>/gi, (match, attrs, jsContent) => {
                 if (!jsContent || !jsContent.trim()) return match;
-                
-                let processedJS = jsContent;
 
+                // Never transform non-JavaScript data blocks such as JSON-LD,
+                // import maps, or application/json. Obfuscating these can break
+                // SEO metadata or browser data parsing.
+                const typeMatch = attrs.match(/\btype\s*=\s*["']([^"']+)["']/i);
+                const scriptType = typeMatch ? typeMatch[1].trim().toLowerCase() : '';
+                const nonJavaScriptTypes = new Set([
+                    'application/ld+json',
+                    'application/json',
+                    'importmap',
+                    'application/importmap',
+                    'speculationrules',
+                    'application/speculationrules'
+                ]);
+                if (nonJavaScriptTypes.has(scriptType)) return match;
+
+                let processedJS = jsContent;
                 if (settings.jsObfuscate) {
                     processedJS = obfuscateJavaScript(processedJS);
                 } else if (settings.jsMinify) {
@@ -1341,63 +1358,33 @@
         }
 
         /* FINAL DOCUMENT BUILDER */
-        // IMPORTANT: Protected output is always wrapped. The raw source is never
-        // emitted directly into the generated HTML document. This keeps the
-        // original HTML/CSS/JS out of normal view-source output while preserving
-        // browser-side rendering. It is obfuscation/deterrence, not encryption.
+        // The browser must receive client-side code, so absolute secrecy is impossible.
+        // This builder focuses on strong practical deterrence: exact hostname binding,
+        // multi-layer payload encoding, payload integrity checking, randomized names,
+        // and a valid standalone HTML wrapper with no unsafe script-tag escaping.
         function buildFinalDocument(contentHTML, settings, targetHost) {
-            const scriptsToInject = [];
-            const cleanHost = targetHost ? targetHost.replace(/^www\./, '').toLowerCase() : '';
+            const cleanHost = targetHost ? targetHost.replace(/^www\./i, '').toLowerCase() : '';
+            const randomId = () => {
+                const chars = 'abcdefghijklmnopqrstuvwxyz';
+                let out = '';
+                const bytes = new Uint8Array(12);
+                if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+                for (let i = 0; i < bytes.length; i++) out += chars[bytes[i] % chars.length];
+                return out;
+            };
 
-            // 1. Domain Lock
-            if (settings.domainLock && cleanHost) {
-                const lockScript = `
-(function(){
-    var allowed = ${JSON.stringify(cleanHost)};
-    var curr = window.location.hostname.toLowerCase().replace(/^www\\./, '');
-    if (curr === "localhost" || curr === "127.0.0.1" || curr === "") return;
-    if (curr !== allowed) {
-        document.open();
-        document.write('<div style="background:#090d16;color:#f87171;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:20px;box-sizing:border-box;">' +
-            '<h1 style="font-size:24px;margin:0 0 8px;">Domain Not Authorized</h1>' +
-            '<p style="color:#94a3b8;font-size:14px;max-width:420px;">This protected website is restricted to its configured domain.</p>' +
-            '</div>');
-        document.close();
-        if (window.stop) window.stop();
-    }
-})();`;
-                scriptsToInject.push(settings.jsObfuscate ? obfuscateJavaScript(lockScript) : lockScript);
-            }
+            // Random per-output identifiers make generated wrappers less predictable.
+            const ids = {
+                payload: randomId(),
+                salt: randomId(),
+                host: randomId(),
+                key: randomId(),
+                hash: randomId(),
+                decode: randomId()
+            };
 
-            // 2. Lightweight anti-tamper deterrence. This is intentionally
-            // non-destructive: it should never break the protected website.
-            if (settings.antiTamper) {
-                const tamperScript = `
-(function(){
-    var marker = "CodeGuardProtected";
-    try { Object.defineProperty(window, "__" + marker, {value:true, configurable:false}); } catch(e) {}
-})();`;
-                scriptsToInject.push(settings.jsObfuscate ? obfuscateJavaScript(tamperScript) : tamperScript);
-            }
-
-            // 3. Casual deterrence only. These do not provide real security.
-            if (settings.disableRightClick) {
-                scriptsToInject.push('document.addEventListener("contextmenu",function(e){e.preventDefault();},{passive:false});');
-            }
-            if (settings.disableShortcuts) {
-                scriptsToInject.push(`document.addEventListener("keydown",function(e){
-if(e.key==="F12"||(e.ctrlKey&&e.shiftKey&&["I","J","C"].includes(e.key.toUpperCase()))||(e.ctrlKey&&e.key.toUpperCase()==="U")){e.preventDefault();e.stopPropagation();return false;}
-},true);`);
-            }
-
-            const injectedHeadCode = scriptsToInject.length
-                ? '<script>\\n' + scriptsToInject.join('\\n') + '\\n<\\/script>'
-                : '';
-
-            // 4. Always encode the complete processed document. A random salt and
-            // per-output XOR layer make the payload less recognizable than plain
-            // Base64 while remaining dependency-free and fast in the browser.
-            const saltBytes = new Uint8Array(12);
+            // Generate a random salt for every output.
+            const saltBytes = new Uint8Array(16);
             if (window.crypto && crypto.getRandomValues) {
                 crypto.getRandomValues(saltBytes);
             } else {
@@ -1407,44 +1394,111 @@ if(e.key==="F12"||(e.ctrlKey&&e.shiftKey&&["I","J","C"].includes(e.key.toUpperCa
             for (let i = 0; i < saltBytes.length; i++) saltBinary += String.fromCharCode(saltBytes[i]);
             const salt = btoa(saltBinary);
 
-            const keyMaterial = 'CG2|' + cleanHost + '|' + salt;
+            // Layer 1: UTF-8 -> XOR stream -> Base64.
+            // This is encoding/obfuscation, not cryptographic secrecy.
+            const keyMaterial = 'CG3|' + cleanHost + '|' + salt;
             const utf8Bytes = new TextEncoder().encode(contentHTML);
             let binary = '';
             for (let i = 0; i < utf8Bytes.length; i++) {
-                utf8Bytes[i] ^= keyMaterial.charCodeAt(i % keyMaterial.length) & 255;
-                binary += String.fromCharCode(utf8Bytes[i]);
+                const keyByte = keyMaterial.charCodeAt(i % keyMaterial.length) & 255;
+                binary += String.fromCharCode(utf8Bytes[i] ^ keyByte);
             }
             const encodedPayload = btoa(binary);
 
-            // No raw contentHTML is inserted into the generated wrapper.
-            return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-${injectedHeadCode}
-</head>
-<body>
-<script>
-(function(){
-    var p = ${JSON.stringify(encodedPayload)};
-    var s = ${JSON.stringify(salt)};
-    var h = ${JSON.stringify(cleanHost)};
-    var k = "CG2|" + h + "|" + s;
-    function decodePayload(b64, key){
-        var bin = atob(b64);
-        var bytes = new Uint8Array(bin.length);
-        for(var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i) ^ (key.charCodeAt(i % key.length) & 255);
-        return new TextDecoder().decode(bytes);
-    }
-    var html = decodePayload(p, k);
-    document.open();
-    document.write(html);
-    document.close();
-})();
-<\/script>
-</body>
-</html>`;
+            // Layer 2: integrity marker. It detects accidental/manual payload changes;
+            // it is not a cryptographic signature because the verifier is client-side.
+            function fnv1a(input) {
+                let h = 2166136261;
+                for (let i = 0; i < input.length; i++) {
+                    h ^= input.charCodeAt(i);
+                    h = Math.imul(h, 16777619);
+                }
+                return (h >>> 0).toString(16).padStart(8, '0');
+            }
+            const payloadHash = fnv1a(encodedPayload + '|' + salt + '|' + cleanHost);
+
+            const scriptsToInject = [];
+
+            // Exact hostname lock. www.example.com and example.com are treated as the
+            // same host; subdomains are NOT accepted as the parent domain.
+            if (settings.domainLock && cleanHost) {
+                const lockScript = `(function(){
+var a=${JSON.stringify(cleanHost)};
+var c=(location.hostname||'').toLowerCase().replace(/^www\\./,'');
+if(c!==a){
+ document.open();
+ document.write('<div style="background:#090d16;color:#f87171;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:20px;box-sizing:border-box"><div><h1 style="font-size:24px;margin:0 0 8px">Domain Not Authorized</h1><p style="color:#94a3b8;font-size:14px;max-width:420px">This protected website is restricted to its configured domain.</p></div></div>');
+ document.close();
+ if(window.stop) window.stop();
+ return;
+}
+})();`;
+                scriptsToInject.push(settings.jsObfuscate ? obfuscateJavaScript(lockScript) : minifyJavaScript(lockScript));
+            }
+
+            // Optional non-destructive anti-tamper marker.
+            if (settings.antiTamper) {
+                const tamperScript = `(function(){
+try{Object.defineProperty(window,'${ids.key}',{value:'${payloadHash}',writable:false,configurable:false});}catch(e){}
+})();`;
+                scriptsToInject.push(settings.jsObfuscate ? obfuscateJavaScript(tamperScript) : minifyJavaScript(tamperScript));
+            }
+
+            // Optional casual deterrence. These are not security boundaries.
+            if (settings.disableRightClick) {
+                scriptsToInject.push('document.addEventListener("contextmenu",function(e){e.preventDefault();},{passive:false});');
+            }
+            if (settings.disableShortcuts) {
+                scriptsToInject.push('document.addEventListener("keydown",function(e){var k=(e.key||"").toUpperCase();if(k==="F12"||(e.ctrlKey&&e.shiftKey&&["I","J","C"].includes(k))||(e.ctrlKey&&k==="U")){e.preventDefault();e.stopPropagation();return false;}},true);');
+            }
+
+            // IMPORTANT: build the closing script tag from pieces so this generator's own script parser is never terminated early.
+            const scriptClose = '<' + '/script>';
+            const injectedHeadCode = scriptsToInject.length
+                ? '<script>' + '\n' + scriptsToInject.join('\n') + '\n' + scriptClose
+                : '';
+
+            const runtimeCode = `(function(){
+var ${ids.payload}=${JSON.stringify(encodedPayload)};
+var ${ids.salt}=${JSON.stringify(salt)};
+var ${ids.host}=${JSON.stringify(cleanHost)};
+var ${ids.hash}=${JSON.stringify(payloadHash)};
+var ${ids.key}='CG3|'+${ids.host}+'|'+${ids.salt};
+function ${ids.decode}(b,k){
+ var bin=atob(b),out=new Uint8Array(bin.length);
+ for(var i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i)^(k.charCodeAt(i%k.length)&255);
+ return new TextDecoder().decode(out);
+}
+function verify(b,s,h,expected){
+ var x=2166136261;
+ var input=b+'|'+s+'|'+h;
+ for(var i=0;i<input.length;i++){x^=input.charCodeAt(i);x=Math.imul(x,16777619);}
+ return (x>>>0).toString(16).padStart(8,'0')===expected;
+}
+if(!verify(${ids.payload},${ids.salt},${ids.host},${ids.hash})){
+ document.open();
+ document.write('<div style="background:#090d16;color:#f87171;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:20px"><div><h1 style="font-size:24px;margin:0 0 8px">Protected Payload Error</h1><p style="color:#94a3b8;font-size:14px;max-width:420px">The protected payload appears to have been modified or corrupted.</p></div></div>');
+ document.close();
+ return;
+}
+var html=${ids.decode}(${ids.payload},${ids.key});
+document.open();
+document.write(html);
+document.close();
+})();`;
+
+            // Optional obfuscation of the runtime loader itself adds another hurdle.
+            const finalRuntime = settings.jsObfuscate ? obfuscateJavaScript(runtimeCode) : minifyJavaScript(runtimeCode);
+
+            // Standalone valid HTML wrapper. No raw source is placed outside the encoded payload.
+            return '<!DOCTYPE html>\n' +
+                '<html lang="en">\n<head>\n' +
+                '<meta charset="UTF-8">\n' +
+                '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+                injectedHeadCode + '\n' +
+                '</head>\n<body>\n<script>\n' +
+                finalRuntime + '\n' +
+                scriptClose + '\n</body>\n</html>';
         }
 
         /* OUTPUT UTILITIES */
