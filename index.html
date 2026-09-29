@@ -442,9 +442,9 @@
                                         <label class="flex items-start justify-between cursor-pointer group">
                                             <div>
                                                 <div class="text-xs font-semibold text-slate-200 group-hover:text-white">Payload Encoding</div>
-                                                <div class="text-[11px] text-slate-400">Encode HTML document body into a runtime-decoded payload wrapper.</div>
+                                                <div class="text-[11px] text-slate-400">Always wrap the processed document in an encoded runtime payload; this keeps raw source out of normal view-source output.</div>
                                             </div>
-                                            <input type="checkbox" id="opt-payload-encode" checked class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
+                                            <input type="checkbox" id="opt-payload-encode" checked disabled class="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-950 text-sky-600 focus:ring-sky-500">
                                         </label>
                                         <label class="flex items-start justify-between cursor-pointer group">
                                             <div>
@@ -1041,7 +1041,7 @@
                 cssMinify.checked = true;
                 jsMinify.checked = true;
                 jsObfuscate.checked = false;
-                payloadEncode.checked = false;
+                payloadEncode.checked = true;
                 domainLock.checked = true;
                 antiTamper.checked = false;
                 rightClick.checked = false;
@@ -1175,7 +1175,7 @@
                 cssMinify: document.getElementById('opt-css-minify').checked,
                 jsMinify: document.getElementById('opt-js-minify').checked,
                 jsObfuscate: document.getElementById('opt-js-obfuscate').checked,
-                payloadEncode: document.getElementById('opt-payload-encode').checked,
+                payloadEncode: true,
                 domainLock: document.getElementById('opt-domain-lock').checked,
                 antiTamper: document.getElementById('opt-anti-tamper').checked,
                 disableRightClick: document.getElementById('opt-disable-rightclick').checked,
@@ -1341,116 +1341,110 @@
         }
 
         /* FINAL DOCUMENT BUILDER */
+        // IMPORTANT: Protected output is always wrapped. The raw source is never
+        // emitted directly into the generated HTML document. This keeps the
+        // original HTML/CSS/JS out of normal view-source output while preserving
+        // browser-side rendering. It is obfuscation/deterrence, not encryption.
         function buildFinalDocument(contentHTML, settings, targetHost) {
-            let scriptsToInject = [];
+            const scriptsToInject = [];
+            const cleanHost = targetHost ? targetHost.replace(/^www\./, '').toLowerCase() : '';
 
-            // 1. Domain Lock Code
-            if (settings.domainLock && targetHost) {
-                const cleanHost = targetHost.replace(/^www\./, '').toLowerCase();
+            // 1. Domain Lock
+            if (settings.domainLock && cleanHost) {
                 const lockScript = `
 (function(){
-    var allowed = "${cleanHost}";
+    var allowed = ${JSON.stringify(cleanHost)};
     var curr = window.location.hostname.toLowerCase().replace(/^www\\./, '');
     if (curr === "localhost" || curr === "127.0.0.1" || curr === "") return;
     if (curr !== allowed) {
         document.open();
-        document.write('<div style="background:#090d16;color:#f87171;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:20px;">' +
-            '<h1 style="font-size:24px;margin-bottom:8px;">Domain Not Authorized</h1>' +
-            '<p style="color:#94a3b8;font-size:14px;max-width:400px;">This protected website is restricted to its configured domain (' + allowed + ').</p>' +
+        document.write('<div style="background:#090d16;color:#f87171;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:20px;box-sizing:border-box;">' +
+            '<h1 style="font-size:24px;margin:0 0 8px;">Domain Not Authorized</h1>' +
+            '<p style="color:#94a3b8;font-size:14px;max-width:420px;">This protected website is restricted to its configured domain.</p>' +
             '</div>');
         document.close();
-        window.stop && window.stop();
+        if (window.stop) window.stop();
     }
 })();`;
                 scriptsToInject.push(settings.jsObfuscate ? obfuscateJavaScript(lockScript) : lockScript);
             }
 
-            // 2. Anti-Tamper Deterrence
+            // 2. Lightweight anti-tamper deterrence. This is intentionally
+            // non-destructive: it should never break the protected website.
             if (settings.antiTamper) {
                 const tamperScript = `
 (function(){
-    var t = function(){};
-    setInterval(function(){
-        var start = Date.now();
-        (function(){}).constructor("debugger")();
-        if(Date.now() - start > 100){ t(); }
-    }, 2000);
+    var marker = "CodeGuardProtected";
+    try { Object.defineProperty(window, "__" + marker, {value:true, configurable:false}); } catch(e) {}
 })();`;
                 scriptsToInject.push(settings.jsObfuscate ? obfuscateJavaScript(tamperScript) : tamperScript);
             }
 
-            // 3. Casual Deterrence (Right Click & Shortcuts)
+            // 3. Casual deterrence only. These do not provide real security.
             if (settings.disableRightClick) {
-                const rcScript = `document.addEventListener("contextmenu", function(e){ e.preventDefault(); });`;
-                scriptsToInject.push(rcScript);
+                scriptsToInject.push('document.addEventListener("contextmenu",function(e){e.preventDefault();},{passive:false});');
             }
-
             if (settings.disableShortcuts) {
-                const scScript = `
-document.addEventListener("keydown", function(e){
-    if (e.keyCode === 123 || 
-       (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) || 
-       (e.ctrlKey && e.keyCode === 85)) {
-        e.preventDefault();
-        return false;
-    }
-});`;
-                scriptsToInject.push(scScript);
+                scriptsToInject.push(`document.addEventListener("keydown",function(e){
+if(e.key==="F12"||(e.ctrlKey&&e.shiftKey&&["I","J","C"].includes(e.key.toUpperCase()))||(e.ctrlKey&&e.key.toUpperCase()==="U")){e.preventDefault();e.stopPropagation();return false;}
+},true);`);
             }
 
-            let injectedHeadCode = scriptsToInject.length > 0
-                ? '<script>\n' + scriptsToInject.join('\n') + '\n<\/script>'
+            const injectedHeadCode = scriptsToInject.length
+                ? '<script>\\n' + scriptsToInject.join('\\n') + '\\n<\\/script>'
                 : '';
 
-            // 4. Payload Encoding vs Direct HTML Output
-            if (settings.payloadEncode) {
-                // Encode source content safely in Base64
-                const utf8Bytes = new TextEncoder().encode(contentHTML);
-                let binaryStr = '';
-                for (let i = 0; i < utf8Bytes.length; i++) {
-                    binaryStr += String.fromCharCode(utf8Bytes[i]);
-                }
-                const encodedPayload = btoa(binaryStr);
+            // 4. Always encode the complete processed document. A random salt and
+            // per-output XOR layer make the payload less recognizable than plain
+            // Base64 while remaining dependency-free and fast in the browser.
+            const saltBytes = new Uint8Array(12);
+            if (window.crypto && crypto.getRandomValues) {
+                crypto.getRandomValues(saltBytes);
+            } else {
+                for (let i = 0; i < saltBytes.length; i++) saltBytes[i] = Math.floor(Math.random() * 256);
+            }
+            let saltBinary = '';
+            for (let i = 0; i < saltBytes.length; i++) saltBinary += String.fromCharCode(saltBytes[i]);
+            const salt = btoa(saltBinary);
 
-                // Construct self-decoding document wrapper
-                return `<!DOCTYPE html>
+            const keyMaterial = 'CG2|' + cleanHost + '|' + salt;
+            const utf8Bytes = new TextEncoder().encode(contentHTML);
+            let binary = '';
+            for (let i = 0; i < utf8Bytes.length; i++) {
+                utf8Bytes[i] ^= keyMaterial.charCodeAt(i % keyMaterial.length) & 255;
+                binary += String.fromCharCode(utf8Bytes[i]);
+            }
+            const encodedPayload = btoa(binary);
+
+            // No raw contentHTML is inserted into the generated wrapper.
+            return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Protected Website</title>
 ${injectedHeadCode}
 </head>
 <body>
 <script>
 (function(){
-    var p = "${encodedPayload}";
-    function d(b64){
+    var p = ${JSON.stringify(encodedPayload)};
+    var s = ${JSON.stringify(salt)};
+    var h = ${JSON.stringify(cleanHost)};
+    var k = "CG2|" + h + "|" + s;
+    function decodePayload(b64, key){
         var bin = atob(b64);
         var bytes = new Uint8Array(bin.length);
-        for(var i=0; i<bin.length; i++){ bytes[i] = bin.charCodeAt(i); }
+        for(var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i) ^ (key.charCodeAt(i % key.length) & 255);
         return new TextDecoder().decode(bytes);
     }
+    var html = decodePayload(p, k);
     document.open();
-    document.write(d(p));
+    document.write(html);
     document.close();
 })();
 <\/script>
 </body>
 </html>`;
-            } else {
-                // Inject security scripts directly into original head/beginning
-                if (injectedHeadCode) {
-                    if (contentHTML.includes('<head>')) {
-                        return contentHTML.replace('<head>', '<head>\n' + injectedHeadCode);
-                    } else if (contentHTML.includes('<html>')) {
-                        return contentHTML.replace('<html>', '<html>\n<head>' + injectedHeadCode + '</head>');
-                    } else {
-                        return injectedHeadCode + '\n' + contentHTML;
-                    }
-                }
-                return contentHTML;
-            }
         }
 
         /* OUTPUT UTILITIES */
