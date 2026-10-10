@@ -1,0 +1,6 @@
+{
+  "name": "CodeGaurd - Code Protection & Restoration Utility",
+  "description": "A browser-based code protection, minification, obfuscation, formatting, and supported code restoration utility by MRS Engineers BD.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
