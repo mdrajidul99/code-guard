@@ -7,7 +7,6 @@ import {
   Sparkles,
   Download,
   ShieldAlert,
-  ArrowRight,
   CheckCircle2,
   Copy
 } from 'lucide-react';
@@ -15,9 +14,10 @@ import { ActivePage } from '../types/index.ts';
 
 interface Props {
   onNavigate: (page: ActivePage) => void;
+  onBack?: () => void;
 }
 
-export const HowToUseView: React.FC<Props> = ({ onNavigate }) => {
+export const HowToUseView: React.FC<Props> = ({ onNavigate, onBack }) => {
   const [activeTab, setActiveTab] = useState<string>('html');
 
   const guides = [
@@ -127,9 +127,6 @@ export const HowToUseView: React.FC<Props> = ({ onNavigate }) => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-8">
       {/* Header */}
       <div className="border-b border-slate-800 pb-6">
-        <div className="text-xs font-semibold uppercase tracking-wider text-cyan-400 mb-1">
-          Documentation &amp; User Manual
-        </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
           How to Use CodeGaurd
         </h1>
@@ -199,7 +196,6 @@ export const HowToUseView: React.FC<Props> = ({ onNavigate }) => {
             className="px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition-colors flex items-center gap-2 shadow-sm"
           >
             <span>Open {activeGuide.id === 'restore' || activeGuide.id === 'beautify' ? 'Restore Tool' : 'Secure Tool'}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -210,7 +206,7 @@ export const HowToUseView: React.FC<Props> = ({ onNavigate }) => {
         <div>
           <span className="font-semibold text-amber-200">Rule of Thumb: Maintain Backups </span>
           <p className="mt-0.5 text-amber-300/90">
-            Never overwrite your only copy of unminified source code. Code minification and identifier mangling are destructive to human readability. Always preserve your clean source in version control (git) or using the local Backup button.
+            Never overwrite your only copy of unminified source code. Code minification and identifier mangling are destructive to human readability. Always preserve your clean source in secure offline backups or using the local Backup button.
           </p>
         </div>
       </div>

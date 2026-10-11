@@ -1,31 +1,23 @@
 import React from 'react';
 import { ShieldCheck, Lock, Database, Mail } from 'lucide-react';
+import { ActivePage } from '../types/index.ts';
 
-export const PrivacyView: React.FC = () => {
+interface PrivacyViewProps {
+  onBack?: () => void;
+  onNavigate?: (page: ActivePage) => void;
+}
+
+export const PrivacyView: React.FC<PrivacyViewProps> = ({ onBack, onNavigate }) => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-8 text-slate-300">
       
       {/* Header */}
       <div className="border-b border-slate-800 pb-6">
-        <div className="text-xs font-semibold uppercase tracking-wider text-cyan-400 mb-1">
-          Data Governance &amp; Ethics
-        </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
           Privacy Policy
         </h1>
         <p className="text-slate-400 text-xs sm:text-sm mt-1">
           Effective Date: October 2026 · Engineered by MRS Engineers BD
-        </p>
-      </div>
-
-      {/* Primary Privacy Guarantee Card */}
-      <div className="rounded-xl border border-cyan-800/60 bg-cyan-950/30 p-5 sm:p-6 space-y-3">
-        <div className="flex items-center gap-2.5 text-cyan-300 font-semibold text-sm sm:text-base">
-          <ShieldCheck className="w-5 h-5 text-cyan-400" />
-          <span>Strict Local-Only Processing Guarantee</span>
-        </div>
-        <p className="text-xs sm:text-sm text-cyan-200/90 leading-relaxed">
-          CodeGaurd processes 100% of your source code, scripts, markup, and stylesheets locally inside your web browser. Your source code is <strong>never uploaded</strong>, transmitted over network sockets, or saved to any remote server or third-party database.
         </p>
       </div>
 
@@ -95,9 +87,6 @@ export const PrivacyView: React.FC = () => {
             <div className="font-semibold text-slate-200">MRS Engineers BD</div>
             <div className="text-slate-400 mt-1">
               Email: <a href="mailto:mrs.engineers.bd26@gmail.com" className="text-cyan-400 hover:underline">mrs.engineers.bd26@gmail.com</a>
-            </div>
-            <div className="text-slate-500 mt-0.5">
-              Repository: <a href="https://github.com/mdrajidul99/code-guard" target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">github.com/mdrajidul99/code-guard</a>
             </div>
           </div>
         </section>

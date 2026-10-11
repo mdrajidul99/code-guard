@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Shield, Moon, Sun, Menu, X, ArrowRight } from 'lucide-react';
+import { Shield, Moon, Sun, Menu, X } from 'lucide-react';
 import { ActivePage } from '../types/index.ts';
 import { useTheme } from '../context/ThemeContext.tsx';
 
 interface Props {
   activePage: ActivePage;
   onNavigate: (page: ActivePage) => void;
+  onBack?: () => void;
 }
 
-export const Header: React.FC<Props> = ({ activePage, onNavigate }) => {
+export const Header: React.FC<Props> = ({ activePage, onNavigate, onBack }) => {
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [logoLoadError, setLogoLoadError] = useState(false);
@@ -35,29 +36,31 @@ export const Header: React.FC<Props> = ({ activePage, onNavigate }) => {
         <div className="flex items-center justify-between h-16 gap-8">
           
           {/* Zone 1: Brand Wordmark & Logo */}
-          <button
-            onClick={() => handleNavClick('home')}
-            className="flex items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-lg p-1 group shrink-0"
-          >
-            <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 flex items-center justify-center overflow-hidden shrink-0 group-hover:border-cyan-400 transition-colors">
-              {!logoLoadError ? (
-                <img
-                  src="https://pxdrop.online/raw/db4t4h281qec73f6ose0"
-                  alt="CodeGaurd Logo"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-contain"
-                  onError={() => setLogoLoadError(true)}
-                />
-              ) : (
-                <Shield className="w-5 h-5 text-cyan-400" />
-              )}
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-bold tracking-tight text-white dark:text-white light:text-slate-900 group-hover:text-cyan-400 transition-colors">
-                CodeGaurd
-              </span>
-            </div>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleNavClick('home')}
+              className="flex items-center gap-3 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 rounded-lg p-1 group shrink-0"
+            >
+              <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 flex items-center justify-center overflow-hidden shrink-0 group-hover:border-cyan-400 transition-colors">
+                {!logoLoadError ? (
+                  <img
+                    src="https://pxdrop.online/raw/db4t4h281qec73f6ose0"
+                    alt="CodeGaurd Logo"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-contain"
+                    onError={() => setLogoLoadError(true)}
+                  />
+                ) : (
+                  <Shield className="w-5 h-5 text-cyan-400" />
+                )}
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xl font-bold tracking-tight text-white dark:text-white light:text-slate-900 group-hover:text-cyan-400 transition-colors">
+                  CodeGaurd
+                </span>
+              </div>
+            </button>
+          </div>
 
           {/* Zone 2: Navigation Links (Desktop) */}
           <nav className="hidden lg:flex items-center gap-6 text-sm font-medium">
@@ -90,15 +93,6 @@ export const Header: React.FC<Props> = ({ activePage, onNavigate }) => {
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {/* Primary Action Button (Desktop) */}
-            <button
-              onClick={() => handleNavClick('secure')}
-              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 rounded-lg shadow-sm hover:shadow-cyan-500/20 transition-all whitespace-nowrap shrink-0"
-            >
-              <span>Secure Code</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-
             {/* Mobile Hamburger Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -128,21 +122,6 @@ export const Header: React.FC<Props> = ({ activePage, onNavigate }) => {
                 {link.label}
               </button>
             ))}
-          </div>
-
-          <div className="pt-2 border-t border-slate-800 flex gap-2">
-            <button
-              onClick={() => handleNavClick('secure')}
-              className="flex-1 py-2.5 text-center text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-500 rounded-lg transition-colors"
-            >
-              Secure Code Tool
-            </button>
-            <button
-              onClick={() => handleNavClick('restore')}
-              className="flex-1 py-2.5 text-center text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              Restore Code Tool
-            </button>
           </div>
         </div>
       )}

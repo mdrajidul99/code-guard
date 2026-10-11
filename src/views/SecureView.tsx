@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
   CodeFormat,
   SecureOptions,
-  ProcessingStats
+  ProcessingStats,
+  ActivePage
 } from '../types/index.ts';
 import { detectFormat } from '../utils/detectFormat.ts';
 import { SAMPLES } from '../utils/samples.ts';
@@ -11,7 +12,6 @@ import { minifyJs, obfuscateJs } from '../utils/jsEngine.ts';
 import { minifyCss } from '../utils/cssEngine.ts';
 import { processBloggerXml } from '../utils/bloggerEngine.ts';
 import { CodeEditor } from '../components/CodeEditor.tsx';
-import { HonestSecurityNotice } from '../components/HonestSecurityNotice.tsx';
 import {
   ShieldCheck,
   Zap,
@@ -19,7 +19,6 @@ import {
   RotateCcw,
   AlertTriangle,
   CheckCircle2,
-  Lock,
   Layers,
   FileCode2,
   Clock,
@@ -56,7 +55,12 @@ const DEFAULT_OPTIONS: SecureOptions = {
   bloggerProtectTags: true,
 };
 
-export const SecureView: React.FC = () => {
+interface SecureViewProps {
+  onBack?: () => void;
+  onNavigate?: (page: ActivePage) => void;
+}
+
+export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) => {
   const [sourceCode, setSourceCode] = useState<string>('');
   const [outputCode, setOutputCode] = useState<string>('');
   const [format, setFormat] = useState<CodeFormat>('auto');
@@ -171,10 +175,6 @@ export const SecureView: React.FC = () => {
       {/* Workspace Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <div className="flex items-center gap-2 text-cyan-400 text-xs font-semibold tracking-wider uppercase mb-1">
-            <Lock className="w-3.5 h-3.5" />
-            <span>Code Protection Engine</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             Secure Code Workspace
           </h1>
@@ -200,9 +200,6 @@ export const SecureView: React.FC = () => {
         </div>
       </div>
 
-      {/* Honest Security Disclaimer */}
-      <HonestSecurityNotice compact />
-
       {/* Error Feedback Banner */}
       {errorMsg && (
         <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-200 text-xs sm:text-sm flex items-start gap-3 animate-in fade-in">
@@ -214,110 +211,36 @@ export const SecureView: React.FC = () => {
         </div>
       )}
 
-      {/* Stats KPI Strip (when processed) */}
-      {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
-          <div>
-            <div className="text-xs text-slate-400">Original Size</div>
-            <div className="text-lg font-mono font-bold text-slate-100 tabular-nums">
-              {(stats.originalSize / 1024).toFixed(2)} KB
-            </div>
-            <div className="text-[11px] text-slate-500">{stats.originalSize} chars</div>
+      {/* 1. Source Code Import Box (Always visible at the top) */}
+      <div className="flex flex-col space-y-3">
+        <CodeEditor
+          title="Source Code Input"
+          value={sourceCode}
+          onChange={setSourceCode}
+          placeholder={`Paste your ${format === 'auto' ? 'HTML, JS, CSS, or Blogger XML' : format.toUpperCase()} source here...`}
+          format={activeEffectiveFormat}
+          onClear={handleClear}
+          onLoadSample={() => handleLoadSample()}
+          showBackupDownload={true}
+          originalSourceForBackup={sourceCode}
+        />
+
+        {format === 'blogger' && (
+          <div className="text-[11px] text-amber-400/90 bg-amber-950/30 border border-amber-900/40 p-2.5 rounded-lg flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>Important: Always save a backup of your Blogger XML template before pasting into Blogger theme editor.</span>
           </div>
-
-          <div>
-            <div className="text-xs text-slate-400">Secured Size</div>
-            <div className="text-lg font-mono font-bold text-cyan-400 tabular-nums">
-              {(stats.processedSize / 1024).toFixed(2)} KB
-            </div>
-            <div className="text-[11px] text-slate-500">{stats.processedSize} chars</div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-400">Size Change</div>
-            <div className={`text-lg font-mono font-bold tabular-nums ${stats.reductionPercentage >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {stats.reductionPercentage >= 0 ? `-${stats.reductionPercentage}%` : `+${Math.abs(stats.reductionPercentage)}%`}
-            </div>
-            <div className="text-[11px] text-slate-500">
-              {stats.reductionPercentage >= 0 ? 'Compressed' : 'Expanded (Obfuscated)'}
-            </div>
-          </div>
-
-          <div>
-            <div className="text-xs text-slate-400">Execution Speed</div>
-            <div className="text-lg font-mono font-bold text-slate-100 tabular-nums">
-              {stats.durationMs} ms
-            </div>
-            <div className="text-[11px] text-slate-500 flex items-center gap-1">
-              <Clock className="w-3 h-3 text-cyan-400" />
-              <span>{stats.timestamp}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Editor Grid: Source (Left) & Output (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[500px]">
-        {/* Source Editor */}
-        <div className="flex flex-col space-y-3">
-          <CodeEditor
-            title="Source Code Input"
-            value={sourceCode}
-            onChange={setSourceCode}
-            placeholder={`Paste your ${format === 'auto' ? 'HTML, JS, CSS, or Blogger XML' : format.toUpperCase()} source here...`}
-            format={activeEffectiveFormat}
-            onClear={handleClear}
-            onLoadSample={() => handleLoadSample()}
-            showBackupDownload={true}
-            originalSourceForBackup={sourceCode}
-          />
-
-          {format === 'blogger' && (
-            <div className="text-[11px] text-amber-400/90 bg-amber-950/30 border border-amber-900/40 p-2.5 rounded-lg flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-              <span>Important: Always save a backup of your Blogger XML template before pasting into Blogger theme editor.</span>
-            </div>
-          )}
-        </div>
-
-        {/* Processed Output Editor */}
-        <div className="flex flex-col space-y-3">
-          <CodeEditor
-            title="Secured Output"
-            value={outputCode}
-            readOnly={true}
-            placeholder="Processed output will appear here after clicking 'Secure Code'..."
-            format={activeEffectiveFormat}
-            showBackupDownload={true}
-            originalSourceForBackup={sourceCode}
-          />
-
-          {outputCode && (
-            <div className="flex items-center justify-between text-xs text-slate-400 px-1">
-              <div className="flex items-center gap-1.5 text-emerald-400">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Ready for production deployment</span>
-              </div>
-              <button
-                onClick={handleReset}
-                className="text-slate-400 hover:text-white flex items-center gap-1 transition-colors"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset Results</span>
-              </button>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Processing Controls and Granular Settings */}
+      {/* 2. Processing Controls & Fine-Tuning Settings (Below Input Box) */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={executeSecureCode}
               disabled={isProcessing || !sourceCode.trim()}
-              className="px-6 py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-md hover:shadow-cyan-500/25 transition-all flex items-center gap-2"
+              className="px-6 py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-md hover:shadow-cyan-500/25 transition-all flex items-center gap-2 cursor-pointer"
             >
               {isProcessing ? (
                 <>
@@ -334,7 +257,7 @@ export const SecureView: React.FC = () => {
 
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors flex items-center gap-1.5"
+              className="px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <Sliders className="w-3.5 h-3.5 text-cyan-400" />
               <span>{showAdvanced ? 'Hide Fine-Tuning' : 'Configure Settings'}</span>
@@ -554,6 +477,78 @@ export const SecureView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 3. Output Box & Stats KPI (Appears BELOW buttons when code is processed) */}
+      {outputCode && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+          {stats && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
+              <div>
+                <div className="text-xs text-slate-400">Original Size</div>
+                <div className="text-lg font-mono font-bold text-slate-100 tabular-nums">
+                  {(stats.originalSize / 1024).toFixed(2)} KB
+                </div>
+                <div className="text-[11px] text-slate-500">{stats.originalSize} chars</div>
+              </div>
+
+              <div>
+                <div className="text-xs text-slate-400">Secured Size</div>
+                <div className="text-lg font-mono font-bold text-cyan-400 tabular-nums">
+                  {(stats.processedSize / 1024).toFixed(2)} KB
+                </div>
+                <div className="text-[11px] text-slate-500">{stats.processedSize} chars</div>
+              </div>
+
+              <div>
+                <div className="text-xs text-slate-400">Size Change</div>
+                <div className={`text-lg font-mono font-bold tabular-nums ${stats.reductionPercentage >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {stats.reductionPercentage >= 0 ? `-${stats.reductionPercentage}%` : `+${Math.abs(stats.reductionPercentage)}%`}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  {stats.reductionPercentage >= 0 ? 'Compressed' : 'Expanded (Obfuscated)'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs text-slate-400">Execution Speed</div>
+                <div className="text-lg font-mono font-bold text-slate-100 tabular-nums">
+                  {stats.durationMs} ms
+                </div>
+                <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-cyan-400" />
+                  <span>{stats.timestamp}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col space-y-3">
+            <CodeEditor
+              title="Secured Output"
+              value={outputCode}
+              readOnly={true}
+              placeholder="Processed output will appear here after clicking 'Secure Code'..."
+              format={activeEffectiveFormat}
+              showBackupDownload={true}
+              originalSourceForBackup={sourceCode}
+            />
+
+            <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+              <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Ready for production deployment</span>
+              </div>
+              <button
+                onClick={handleReset}
+                className="text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset Results</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

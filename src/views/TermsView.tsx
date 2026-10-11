@@ -1,31 +1,23 @@
 import React from 'react';
 import { AlertTriangle, ShieldCheck, FileText, Scale } from 'lucide-react';
+import { ActivePage } from '../types/index.ts';
 
-export const TermsView: React.FC = () => {
+interface TermsViewProps {
+  onBack?: () => void;
+  onNavigate?: (page: ActivePage) => void;
+}
+
+export const TermsView: React.FC<TermsViewProps> = ({ onBack, onNavigate }) => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-8 text-slate-300">
       
       {/* Header */}
       <div className="border-b border-slate-800 pb-6">
-        <div className="text-xs font-semibold uppercase tracking-wider text-cyan-400 mb-1">
-          Service Agreement &amp; Disclaimers
-        </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
           Terms &amp; Conditions
         </h1>
         <p className="text-slate-400 text-xs sm:text-sm mt-1">
           Last Updated: October 2026 · MRS Engineers BD
-        </p>
-      </div>
-
-      {/* Honest Limitation Callout */}
-      <div className="rounded-xl border border-amber-800/60 bg-amber-950/20 p-5 space-y-2">
-        <div className="flex items-center gap-2 text-amber-300 font-semibold text-sm">
-          <AlertTriangle className="w-4 h-4 text-amber-400" />
-          <span>Core Disclaimer of Client-Side Code Secrecy</span>
-        </div>
-        <p className="text-xs sm:text-sm text-amber-200/90 leading-relaxed">
-          CodeGaurd is a browser-based code minification, obfuscation, and formatting utility designed to make client-side code harder to read and reuse casually. Web browsers require HTML, CSS, and JavaScript to be decoded and executed to render websites. No client-side transformation guarantees complete secrecy against determined reverse engineering.
         </p>
       </div>
 
@@ -107,9 +99,6 @@ export const TermsView: React.FC = () => {
             <div className="font-semibold text-slate-200">MRS Engineers BD</div>
             <div className="text-slate-400 mt-1">
               Email: <a href="mailto:mrs.engineers.bd26@gmail.com" className="text-cyan-400 hover:underline">mrs.engineers.bd26@gmail.com</a>
-            </div>
-            <div className="text-slate-500 mt-0.5">
-              Production Deployment: <a href="https://mdrajidul99.github.io/code-guard/" target="_blank" rel="noreferrer" className="text-cyan-400 hover:underline">https://mdrajidul99.github.io/code-guard/</a>
             </div>
           </div>
         </section>

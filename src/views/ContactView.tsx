@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
-import { Mail, Github, ExternalLink, MessageSquare, Send, CheckCircle2, Shield, Info } from 'lucide-react';
+import { Mail, MessageSquare, Send, CheckCircle2, Shield, Info } from 'lucide-react';
+import { ActivePage } from '../types/index.ts';
 
-export const ContactView: React.FC = () => {
+interface ContactViewProps {
+  onBack?: () => void;
+  onNavigate?: (page: ActivePage) => void;
+}
+
+export const ContactView: React.FC<ContactViewProps> = ({ onBack, onNavigate }) => {
   const [topic, setTopic] = useState<string>('General Inquiry');
   const [subjectDetails, setSubjectDetails] = useState<string>('');
 
@@ -14,9 +20,6 @@ export const ContactView: React.FC = () => {
       
       {/* Header */}
       <div className="border-b border-slate-800 pb-6">
-        <div className="text-xs font-semibold uppercase tracking-wider text-cyan-400 mb-1">
-          Support &amp; Developer Relations
-        </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
           Contact Engineering Team
         </h1>
@@ -47,32 +50,6 @@ export const ContactView: React.FC = () => {
                 >
                   <Mail className="w-4 h-4 shrink-0" />
                   <span className="break-all">{email}</span>
-                </a>
-              </div>
-
-              <div>
-                <div className="text-[11px] text-slate-400">GitHub Repository</div>
-                <a
-                  href="https://github.com/mdrajidul99/code-guard"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-slate-200 hover:text-cyan-400 transition-colors flex items-center gap-1.5 mt-0.5"
-                >
-                  <Github className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span>github.com/mdrajidul99/code-guard</span>
-                </a>
-              </div>
-
-              <div>
-                <div className="text-[11px] text-slate-400">Production GitHub Pages</div>
-                <a
-                  href="https://mdrajidul99.github.io/code-guard/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-slate-200 hover:text-cyan-400 transition-colors flex items-center gap-1.5 mt-0.5"
-                >
-                  <ExternalLink className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span>mdrajidul99.github.io/code-guard</span>
                 </a>
               </div>
             </div>
@@ -152,7 +129,7 @@ export const ContactView: React.FC = () => {
           <div className="rounded-xl border border-cyan-800/40 bg-cyan-950/20 p-4 text-xs text-cyan-300 flex items-start gap-2.5">
             <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
             <p>
-              <strong>Community Verified:</strong> CodeGaurd is free, open, and client-side. We welcome code contributions, test cases, and feature pull requests on GitHub.
+              <strong>Community Verified:</strong> CodeGaurd is free, transparent, and operates 100% locally in your browser.
             </p>
           </div>
         </div>
