@@ -170,10 +170,6 @@ export const RestoreView: React.FC<RestoreViewProps> = ({ onBack, onNavigate }) 
               <span>Beautify Code Only</span>
             </button>
           </div>
-
-          <div className="text-xs text-slate-400">
-            Target: <span className="text-cyan-300 font-mono uppercase">{detectedLanguage}</span> Mode
-          </div>
         </div>
       </div>
 

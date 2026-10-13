@@ -159,9 +159,9 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
             <div className="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-800 text-cyan-400 flex items-center justify-center font-bold text-sm">
               1
             </div>
-            <h3 className="text-base font-semibold text-slate-100">Input &amp; Auto-Detection</h3>
+            <h3 className="text-base font-semibold text-slate-100">Input &amp; Format Selection</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Paste your HTML, JS, CSS, or Blogger XML template into the workspace. The intelligent format detector inspects namespaces, doctypes, and grammar to pick the correct pipeline.
+              Paste your HTML, JS, CSS, or Blogger XML template into the workspace and select your format from the dropdown menu to apply specialized protection.
             </p>
           </div>
 

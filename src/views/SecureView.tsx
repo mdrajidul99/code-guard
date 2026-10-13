@@ -240,13 +240,6 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
           showBackupDownload={true}
           originalSourceForBackup={sourceCode}
         />
-
-        {format === 'blogger' && (
-          <div className="text-[11px] text-amber-400/90 bg-amber-950/30 border border-amber-900/40 p-2.5 rounded-lg flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-            <span>Important: Always save a backup of your Blogger XML template before pasting into Blogger theme editor.</span>
-          </div>
-        )}
       </div>
 
       {/* 2. Processing Controls (Below Input Box) */}
@@ -296,10 +289,6 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
                 Minify Only
               </button>
             </div>
-          </div>
-
-          <div className="text-xs text-slate-400">
-            Pipeline: <span className="text-cyan-300 font-mono uppercase">{activeEffectiveFormat}</span> Mode
           </div>
         </div>
       </div>
