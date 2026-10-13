@@ -60,7 +60,7 @@ export const PrivacyView: React.FC<PrivacyViewProps> = ({ onBack, onNavigate }) 
             3. Third-Party CDNs &amp; External Assets
           </h2>
           <p className="text-slate-400">
-            To render the interface, CodeGaurd loads standard web fonts from Google Fonts (Plus Jakarta Sans &amp; JetBrains Mono) and the official branded application logo. No source code or identifiable user parameters are transmitted to these asset endpoints.
+            To render the interface, CodeGaurd loads standard web fonts from Google Fonts (Plus Jakarta Sans &amp; JetBrains Mono). The application logo and assets are stored and bundled locally with zero external image host dependency. No source code or identifiable user parameters are transmitted to any external endpoints.
           </p>
         </section>
 

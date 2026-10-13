@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Shield, Moon, Sun, Menu, X } from 'lucide-react';
 import { ActivePage } from '../types/index.ts';
 import { useTheme } from '../context/ThemeContext.tsx';
+import codegaurdLogo from '../assets/logo.png';
 
 interface Props {
   activePage: ActivePage;
@@ -44,9 +45,8 @@ export const Header: React.FC<Props> = ({ activePage, onNavigate, onBack }) => {
               <div className="relative w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 flex items-center justify-center overflow-hidden shrink-0 group-hover:border-cyan-400 transition-colors">
                 {!logoLoadError ? (
                   <img
-                    src="https://pxdrop.online/raw/db4t4h281qec73f6ose0"
+                    src={codegaurdLogo}
                     alt="CodeGaurd Logo"
-                    referrerPolicy="no-referrer"
                     className="w-full h-full object-contain"
                     onError={() => setLogoLoadError(true)}
                   />
