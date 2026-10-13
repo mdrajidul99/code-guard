@@ -28,7 +28,7 @@ interface RestoreViewProps {
 export const RestoreView: React.FC<RestoreViewProps> = ({ onBack, onNavigate }) => {
   const [sourceCode, setSourceCode] = useState<string>('');
   const [restoredCode, setRestoredCode] = useState<string>('');
-  const [format, setFormat] = useState<CodeFormat>('auto');
+  const [format, setFormat] = useState<CodeFormat>('javascript');
   const [options, setOptions] = useState<RestoreOptions>({
     beautifyOnly: false,
     deescapeHex: true,
@@ -65,7 +65,7 @@ export const RestoreView: React.FC<RestoreViewProps> = ({ onBack, onNavigate }) 
     setIsProcessing(true);
 
     try {
-      const activeFormat = format === 'auto' ? detectFormat(sourceCode) : format;
+      const activeFormat = format;
       const effectiveOptions: Partial<RestoreOptions> = {
         ...options,
         beautifyOnly,
@@ -89,8 +89,7 @@ export const RestoreView: React.FC<RestoreViewProps> = ({ onBack, onNavigate }) 
     }
   };
 
-  const detectedLanguage: CodeFormat =
-    format === 'auto' ? (stats ? stats.formatApplied : detectFormat(sourceCode)) : format;
+  const detectedLanguage: CodeFormat = format;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 space-y-8">
@@ -107,15 +106,14 @@ export const RestoreView: React.FC<RestoreViewProps> = ({ onBack, onNavigate }) 
 
         {/* Global Format Selector */}
         <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-400 shrink-0">Target Format:</label>
+          <label className="text-xs font-medium text-slate-400 shrink-0">Select Format:</label>
           <select
             value={format}
             onChange={(e) => setFormat(e.target.value as CodeFormat)}
             className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium focus:ring-1 focus:ring-cyan-500 focus:outline-none"
           >
-            <option value="auto">Auto Detect Format</option>
-            <option value="html">HTML Document</option>
             <option value="javascript">JavaScript</option>
+            <option value="html">HTML Document</option>
             <option value="css">CSS Stylesheet</option>
             <option value="blogger">Blogger XML Template</option>
           </select>
@@ -148,8 +146,8 @@ export const RestoreView: React.FC<RestoreViewProps> = ({ onBack, onNavigate }) 
         />
       </div>
 
-      {/* 2. Action Toolbar & Settings (Below Input Box) */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 space-y-4">
+      {/* 2. Action Toolbar (Below Input Box) */}
+      <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-wrap">
             {/* Primary Full Restore Button */}
@@ -173,63 +171,9 @@ export const RestoreView: React.FC<RestoreViewProps> = ({ onBack, onNavigate }) 
             </button>
           </div>
 
-          {/* Indent Options */}
-          <div className="flex items-center gap-3 text-xs text-slate-400">
-            <span>Indentation:</span>
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-              <button
-                onClick={() => setOptions({ ...options, indentSize: 2 })}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                  options.indentSize === 2
-                    ? 'bg-cyan-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                2 Spaces
-              </button>
-              <button
-                onClick={() => setOptions({ ...options, indentSize: 4 })}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                  options.indentSize === 4
-                    ? 'bg-cyan-600 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                4 Spaces
-              </button>
-            </div>
+          <div className="text-xs text-slate-400">
+            Target: <span className="text-cyan-300 font-mono uppercase">{detectedLanguage}</span> Mode
           </div>
-        </div>
-
-        {/* Options checklist */}
-        <div className="pt-3 border-t border-slate-800/80 flex flex-wrap gap-4 text-xs text-slate-300">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.resolveStringArrays}
-              onChange={(e) => setOptions({ ...options, resolveStringArrays: e.target.checked })}
-              className="rounded border-slate-700 bg-slate-950 text-cyan-500 focus:ring-cyan-500"
-            />
-            <span>Unpack String Array Lookup Tables</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.deescapeHex}
-              onChange={(e) => setOptions({ ...options, deescapeHex: e.target.checked })}
-              className="rounded border-slate-700 bg-slate-950 text-cyan-500 focus:ring-cyan-500"
-            />
-            <span>Decode Hex Escapes (\\xHH)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.deescapeUnicode}
-              onChange={(e) => setOptions({ ...options, deescapeUnicode: e.target.checked })}
-              className="rounded border-slate-700 bg-slate-950 text-cyan-500 focus:ring-cyan-500"
-            />
-            <span>Decode Unicode Escapes (\\uHHHH)</span>
-          </label>
         </div>
       </div>
 

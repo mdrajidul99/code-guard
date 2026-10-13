@@ -47,6 +47,25 @@ export function deescapeUnicodeStrings(code: string): { result: string; count: n
  * Detects CodeGaurd self-extracting HTML container and unpacks original source.
  */
 export function unpackProtectedHtmlContainer(code: string): { unpacked: string | null } {
+  // Check for XOR-encrypted container: var _0xk = <num>; var _0xp = "<base64>";
+  const xorMatch = /var\s+_0xk\s*=\s*(\d+);\s*var\s+_0xp\s*=\s*["']([A-Za-z0-9+/=]+)["']/i.exec(code);
+  if (xorMatch && xorMatch[1] && xorMatch[2]) {
+    try {
+      const xorKey = parseInt(xorMatch[1], 10);
+      const binary = atob(xorMatch[2]);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i) ^ ((xorKey + (i % 31)) & 0xff);
+      }
+      const decoded = new TextDecoder('utf-8').decode(bytes);
+      return { unpacked: decoded };
+    } catch {
+      // Fallback
+    }
+  }
+
+  // Check for legacy Base64 container: var _0xdata = "<base64>";
   const match = /var\s+_0xdata\s*=\s*["']([A-Za-z0-9+/=]+)["']/i.exec(code);
   if (match && match[1]) {
     try {
@@ -91,10 +110,12 @@ export function resolveStringArrayTable(code: string): { result: string; count: 
         // Strip the table declaration
         let cleaned = code.replace(match[0], '');
 
-        // Replace all accessor function calls: _0x8f2c(0) -> "string"
-        const callRegex = new RegExp(`\\b${accessorFunc}\\s*\\(\\s*(\\d+)\\s*\\)`, 'g');
+        // Replace all accessor function calls: _0x8f2c(0) or _0x8f2c(0x1a) -> "string"
+        const callRegex = new RegExp(`\\b${accessorFunc}\\s*\\(\\s*(0x[0-9a-fA-F]+|\\d+)\\s*\\)`, 'g');
         cleaned = cleaned.replace(callRegex, (fullCall, idxStr) => {
-          const idx = parseInt(idxStr, 10);
+          const idx = idxStr.toLowerCase().startsWith('0x')
+            ? parseInt(idxStr, 16)
+            : parseInt(idxStr, 10);
           if (idx >= 0 && idx < stringLiterals.length) {
             count++;
             return JSON.stringify(stringLiterals[idx]);
@@ -125,8 +146,8 @@ export function restoreCode(
   let currentCode = inputCode;
   let decodedCount = 0;
 
-  // 1. Detect target format if auto
-  const resolvedFormat = format === 'auto' ? detectFormat(inputCode) : format;
+  // 1. Target format
+  const resolvedFormat = format;
 
   // 2. Check for CodeGaurd Protected HTML Container
   const containerCheck = unpackProtectedHtmlContainer(currentCode);

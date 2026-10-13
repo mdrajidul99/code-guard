@@ -1,4 +1,4 @@
-export type CodeFormat = 'html' | 'javascript' | 'css' | 'blogger' | 'auto';
+export type CodeFormat = 'html' | 'javascript' | 'css' | 'blogger';
 
 export interface SecureOptions {
   // HTML Options
