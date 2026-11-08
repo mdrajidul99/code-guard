@@ -1,11 +1,12 @@
-export const SAMPLES = {
+import { CodeFormat } from '../types/index.ts';
+
+export const SAMPLES: Record<CodeFormat, string> = {
   html: `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sample Application Portal</title>
-  <!-- Main application stylesheet -->
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -40,6 +41,7 @@ export const SAMPLES = {
       cursor: pointer;
       font-weight: 500;
       transition: background-color 0.2s ease;
+      margin-top: 16px;
     }
     .btn-action:hover {
       background-color: #0369a1;
@@ -57,118 +59,14 @@ export const SAMPLES = {
     </div>
   </div>
 
-  <!-- Client-side telemetry and event hooks -->
   <script>
     function handleSync() {
       const timestamp = new Date().toISOString();
-      console.log('Synchronizing node status at: ' + timestamp);
-      const portal = document.getElementById('user-portal');
-      if (portal) {
-        portal.style.borderColor = '#0284c7';
-      }
+      alert('Synchronizing node status at: ' + timestamp);
     }
   </script>
 </body>
 </html>`,
-
-  javascript: `/**
- * License: Proprietary Client Logic
- * Author: MRS Engineers BD
- */
-function initializeSecurityMatrix(secretToken, accessLevel) {
-  // Validate token credentials
-  const systemPrefix = "SYS_AUTH_NODE_";
-  const verifiedStatus = "AUTHORIZED_SESSION";
-  let attemptCounter = 0;
-  
-  if (!secretToken || accessLevel < 2) {
-    console.warn("Invalid access level or credential provided.");
-    return false;
-  }
-
-  function computeHashSignature(inputKey) {
-    let hash = 5381;
-    for (let i = 0; i < inputKey.length; i++) {
-      hash = ((hash << 5) + hash) + inputKey.charCodeAt(i);
-    }
-    return Math.abs(hash).toString(16);
-  }
-
-  const generatedSignature = computeHashSignature(secretToken);
-  const fullSessionId = systemPrefix + generatedSignature;
-
-  console.log("Session verified:", verifiedStatus, "Session ID:", fullSessionId);
-  return {
-    status: verifiedStatus,
-    sessionId: fullSessionId,
-    verifiedAt: Date.now()
-  };
-}
-
-// Execute initial handshake
-const authResult = initializeSecurityMatrix("AlphaSecToken_9921", 3);
-`,
-
-  css: `/* Modern Corporate Theme Stylesheet */
-:root {
-  --primary-accent: #0284c7;
-  --primary-dark: #0f172a;
-  --neutral-surface: #ffffff;
-  --border-subtle: #e2e8f0;
-  --font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* Global Reset and Foundation */
-* {
-  box-sizing: border-box;
-  margin: 0px;
-  padding: 0px;
-}
-
-body {
-  font-family: var(--font-stack);
-  background-color: var(--primary-dark);
-  color: #f1f5f9;
-  line-height: 1.6;
-}
-
-.navigation-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 32px;
-  background: rgba(15, 23, 42, 0.8);
-  border-bottom: 1px solid var(--border-subtle);
-  backdrop-filter: blur(8px);
-}
-
-.navigation-bar .brand-logo {
-  font-size: 20px;
-  font-weight: 700;
-  color: #38bdf8;
-  letter-spacing: -0.025em;
-}
-
-@media (max-width: 768px) {
-  .navigation-bar {
-    padding: 12px 16px;
-    flex-direction: column;
-    gap: 12px;
-  }
-}
-
-@keyframes pulseGlow {
-  0% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(56, 189, 248, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
-  }
-}
-`,
 
   blogger: `<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html>
@@ -197,6 +95,15 @@ body {
       border-bottom: 1px solid #eeeeee;
     }
   ]]></b:skin>
+
+  <script type='text/javascript'>
+    //<![CDATA[
+    function initBlogApp() {
+      console.log('Blogger custom script initialized safely.');
+    }
+    initBlogApp();
+    //]]>
+  </script>
 </head>
 <body>
   <div class='header-outer'>

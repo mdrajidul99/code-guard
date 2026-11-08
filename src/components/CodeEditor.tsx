@@ -104,11 +104,11 @@ export const CodeEditor: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex flex-col h-full rounded-xl border border-slate-800 bg-slate-900/90 shadow-sm overflow-hidden focus-within:border-cyan-500/50 transition-colors">
+    <div className="w-full flex flex-col rounded-xl border border-slate-800 bg-slate-900/90 shadow-sm overflow-hidden focus-within:border-cyan-500/50 transition-colors">
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 bg-slate-950/70 text-xs">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800 bg-slate-950/70 text-xs flex-wrap gap-2">
         <div className="flex items-center gap-2 font-medium text-slate-200">
-          <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+          <Code2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
           <span>{title}</span>
           <span className="text-slate-500">·</span>
           <span className="text-slate-400 font-mono tabular-nums">{lines} {lines === 1 ? 'line' : 'lines'}</span>
@@ -121,7 +121,7 @@ export const CodeEditor: React.FC<Props> = ({
           {!readOnly && onLoadSample && (
             <button
               onClick={onLoadSample}
-              className="px-2 py-1 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1"
+              className="px-2 py-1 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
               title="Load realistic sample code for this format"
             >
               <FileText className="w-3 h-3 text-cyan-400" />
@@ -132,7 +132,7 @@ export const CodeEditor: React.FC<Props> = ({
           {!readOnly && (
             <button
               onClick={handlePaste}
-              className="px-2 py-1 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1"
+              className="px-2 py-1 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
               title="Paste from clipboard"
             >
               <ClipboardPaste className="w-3 h-3" />
@@ -144,7 +144,7 @@ export const CodeEditor: React.FC<Props> = ({
             <button
               onClick={onClear}
               disabled={!value}
-              className="px-2 py-1 rounded border border-slate-800 hover:border-rose-900 bg-slate-800/40 hover:bg-rose-950/30 text-slate-400 hover:text-rose-300 transition-colors disabled:opacity-40 flex items-center gap-1"
+              className="px-2 py-1 rounded border border-slate-800 hover:border-rose-900 bg-slate-800/40 hover:bg-rose-950/30 text-slate-400 hover:text-rose-300 transition-colors disabled:opacity-40 flex items-center gap-1 cursor-pointer"
               title="Clear editor contents"
             >
               <Trash2 className="w-3 h-3" />
@@ -156,7 +156,7 @@ export const CodeEditor: React.FC<Props> = ({
           <button
             onClick={handleCopy}
             disabled={!value}
-            className={`px-2.5 py-1 rounded border transition-colors flex items-center gap-1 font-medium ${
+            className={`px-2.5 py-1 rounded border transition-colors flex items-center gap-1 font-medium cursor-pointer ${
               copied
                 ? 'border-emerald-600 bg-emerald-950/50 text-emerald-300'
                 : 'border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white disabled:opacity-40'
@@ -172,7 +172,7 @@ export const CodeEditor: React.FC<Props> = ({
             <>
               <button
                 onClick={handleDownloadTxt}
-                className="px-2 py-1 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1"
+                className="px-2 py-1 rounded border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
                 title="Download as plain text file (.txt)"
               >
                 <Download className="w-3 h-3" />
@@ -181,7 +181,7 @@ export const CodeEditor: React.FC<Props> = ({
 
               <button
                 onClick={handleDownloadNative}
-                className="px-2 py-1 rounded border border-cyan-800 bg-cyan-950/50 hover:bg-cyan-900/60 text-cyan-200 hover:text-white transition-colors flex items-center gap-1 font-medium"
+                className="px-2 py-1 rounded border border-cyan-800 bg-cyan-950/50 hover:bg-cyan-900/60 text-cyan-200 hover:text-white transition-colors flex items-center gap-1 font-medium cursor-pointer"
                 title={`Download formatted file (${getFormatFileInfo(format).extension})`}
               >
                 <Download className="w-3 h-3 text-cyan-400" />
@@ -194,7 +194,7 @@ export const CodeEditor: React.FC<Props> = ({
           {showBackupDownload && (originalSourceForBackup || value) && (
             <button
               onClick={handleDownloadBackup}
-              className="px-2 py-1 rounded border border-amber-800/60 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 hover:text-amber-100 transition-colors flex items-center gap-1 font-medium"
+              className="px-2 py-1 rounded border border-amber-800/60 bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 hover:text-amber-100 transition-colors flex items-center gap-1 font-medium cursor-pointer"
               title="Download backup copy of original code before modifications"
             >
               <ShieldAlert className="w-3 h-3 text-amber-400" />
@@ -204,8 +204,8 @@ export const CodeEditor: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Editor Body */}
-      <div className="relative flex-1 min-h-[340px] sm:min-h-[420px] flex bg-slate-950/90 font-mono text-xs sm:text-sm">
+      {/* Editor Body - Takes 100% Full Width and Height */}
+      <div className="relative flex-1 flex flex-col w-full min-h-[380px] sm:min-h-[460px] bg-slate-950/95 font-mono text-xs sm:text-sm overflow-hidden">
         <textarea
           ref={textareaRef}
           value={value}
@@ -214,12 +214,12 @@ export const CodeEditor: React.FC<Props> = ({
           readOnly={readOnly}
           placeholder={placeholder}
           spellCheck={false}
-          className="w-full h-full p-4 bg-transparent text-slate-200 placeholder-slate-600 resize-none focus:outline-none font-mono text-xs sm:text-sm leading-relaxed selection:bg-cyan-500/30 selection:text-cyan-200"
+          className="w-full flex-1 block min-h-[380px] sm:min-h-[460px] p-4 bg-transparent text-slate-100 placeholder-slate-500 resize-y focus:outline-none font-mono text-xs sm:text-sm leading-relaxed selection:bg-cyan-500/30 selection:text-cyan-200 whitespace-pre-wrap break-words"
           style={{ tabSize: 2 }}
         />
 
         {downloadNotice && (
-          <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-lg bg-cyan-600 text-white font-sans text-xs shadow-lg animate-in fade-in duration-200 flex items-center gap-1.5">
+          <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-lg bg-cyan-600 text-white font-sans text-xs shadow-lg animate-in fade-in duration-200 flex items-center gap-1.5 pointer-events-none">
             <Check className="w-3.5 h-3.5" />
             <span>{downloadNotice}</span>
           </div>

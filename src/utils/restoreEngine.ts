@@ -202,21 +202,13 @@ export function restoreCode(
       decodedCount += bloggerResult.decodedCount;
       notes.push(`Decoded ${bloggerResult.decodedCount} protected scripts inside Blogger XML.`);
     }
-  } else if (resolvedFormat === 'html') {
+  } else {
     // Unpack HTML runner
     const htmlUnpack = unpackProtectedHtml(currentCode);
     if (htmlUnpack.unpacked) {
       currentCode = htmlUnpack.unpacked;
       decodedCount += 1;
       notes.push('Successfully decoded and unpacked protected HTML payload.');
-    }
-  } else if (resolvedFormat === 'javascript') {
-    // Unpack JavaScript runner
-    const jsUnpack = unpackProtectedJs(currentCode);
-    if (jsUnpack.unpacked) {
-      currentCode = jsUnpack.unpacked;
-      decodedCount += 1;
-      notes.push('Successfully decoded and unpacked protected JavaScript payload.');
     }
   }
 
@@ -280,25 +272,19 @@ export function restoreCode(
 
   let formattedCode = currentCode;
   try {
-    if (resolvedFormat === 'html') {
-      formattedCode = beautify.html(currentCode, {
-        ...beautifyOptions,
-        indent_inner_html: true,
-        extra_liners: ['head', 'body', '/html'],
-      });
-      notes.push('Formatted HTML structure with clean indentation.');
-    } else if (resolvedFormat === 'css') {
-      formattedCode = beautify.css(currentCode, beautifyOptions);
-      notes.push('Formatted CSS rulesets, properties, and media queries.');
-    } else if (resolvedFormat === 'blogger') {
+    if (resolvedFormat === 'blogger') {
       formattedCode = beautify.html(currentCode, {
         ...beautifyOptions,
         indent_inner_html: true,
       });
       notes.push('Formatted Blogger XML structure with preserved namespaces and tags.');
     } else {
-      formattedCode = beautify.js(currentCode, beautifyOptions);
-      notes.push('Formatted JavaScript code blocks and statements.');
+      formattedCode = beautify.html(currentCode, {
+        ...beautifyOptions,
+        indent_inner_html: true,
+        extra_liners: ['head', 'body', '/html'],
+      });
+      notes.push('Formatted HTML structure with clean indentation.');
     }
   } catch (err: unknown) {
     notes.push('Notice: Format beautification completed with best-effort structure.');

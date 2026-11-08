@@ -1,9 +1,9 @@
 import { CodeFormat } from '../types/index.ts';
 
 /**
- * Automatically inspects input code to determine the most likely format.
+ * Automatically inspects input code to determine whether it is Blogger XML or HTML.
  */
-export function detectFormat(code: string): 'html' | 'javascript' | 'css' | 'blogger' {
+export function detectFormat(code: string): CodeFormat {
   const trimmed = code.trim();
   if (!trimmed) return 'html';
 
@@ -21,41 +21,6 @@ export function detectFormat(code: string): 'html' | 'javascript' | 'css' | 'blo
     return 'blogger';
   }
 
-  // 2. Check for standard HTML
-  const isHtml =
-    /^<!doctype\s+html/i.test(trimmed) ||
-    /<html\b/i.test(trimmed) ||
-    (/<head\b/i.test(trimmed) && /<body\b/i.test(trimmed)) ||
-    (/<div\b/i.test(trimmed) && /<\/div>/i.test(trimmed)) ||
-    (/<script\b/i.test(trimmed) && /<style\b/i.test(trimmed));
-
-  if (isHtml) {
-    return 'html';
-  }
-
-  // 3. Check for CSS
-  // CSS typically has rules with curly braces, selectors, properties with colons, @media, @keyframes
-  const hasCssSelectors = /^[.#a-zA-Z0-9_\-\s:,>+~*\[\]="'^$*|]+\s*\{[^}]*\}/m.test(trimmed);
-  const hasCssAtRules = /@(media|keyframes|import|charset|supports|font-face)\b/i.test(trimmed);
-  const hasHtmlTags = /<\/?([a-z][a-z0-9]*)\b[^>]*>/i.test(trimmed);
-
-  if (!hasHtmlTags && (hasCssAtRules || (hasCssSelectors && !trimmed.includes('function') && !trimmed.includes('const ') && !trimmed.includes('var ')))) {
-    return 'css';
-  }
-
-  // 4. Default to JavaScript if code contains JS keywords or syntax
-  const isJs =
-    /\b(function|const|let|var|class|import|export|return|async|await|console\.|window\.|document\.)\b/.test(trimmed) ||
-    /=>/.test(trimmed);
-
-  if (isJs) {
-    return 'javascript';
-  }
-
-  // Fallback heuristic: if it contains '<' and '>', it's likely markup (HTML)
-  if (trimmed.includes('<') && trimmed.includes('>')) {
-    return 'html';
-  }
-
-  return 'javascript';
+  // 2. Default to HTML (Website & App Code)
+  return 'html';
 }

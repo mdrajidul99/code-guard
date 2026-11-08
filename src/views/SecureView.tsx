@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import {
   CodeFormat,
-  SecureOptions,
   ProcessingStats,
   ActivePage
 } from '../types/index.ts';
-import { detectFormat } from '../utils/detectFormat.ts';
 import { SAMPLES } from '../utils/samples.ts';
-import { minifyHtml, encodeHtml } from '../utils/htmlEngine.ts';
-import { minifyJs, encodeJs } from '../utils/jsEngine.ts';
-import { minifyCss } from '../utils/cssEngine.ts';
+import { encodeHtml } from '../utils/htmlEngine.ts';
 import { processBloggerXml } from '../utils/bloggerEngine.ts';
 import { CodeEditor } from '../components/CodeEditor.tsx';
 import {
@@ -22,38 +18,9 @@ import {
   X,
   Lock,
   EyeOff,
-  ShieldAlert
+  ShieldAlert,
+  Info
 } from 'lucide-react';
-
-const DEFAULT_OPTIONS: SecureOptions = {
-  // HTML - Ultra Protection Active by Default
-  htmlMinifyWhitespace: true,
-  htmlRemoveComments: true,
-  htmlMinifyInlineCss: true,
-  htmlMinifyInlineJs: true,
-  htmlProtectContainer: true, // TRUE: Encrypts markup & blocks right-click/inspect/view-source!
-
-  // JS - Anti-Tamper & Obfuscation Active by Default
-  jsMinifyWhitespace: true,
-  jsRemoveComments: true,
-  jsMangleIdentifiers: true,
-  jsEncodeStringsHex: true,
-  jsStringArrayRotation: true,
-  jsConvertNumbersToHex: true,
-  jsAddTamperProtection: true, // TRUE: Injects anti-debugger trap & inspection blocks!
-
-  // CSS
-  cssMinifyWhitespace: true,
-  cssRemoveComments: true,
-  cssShortenHexColors: true,
-  cssRemoveZeroUnits: true,
-
-  // Blogger XML
-  bloggerValidateXml: true,
-  bloggerMinifyWhitespace: true,
-  bloggerMinifyCdataCss: true,
-  bloggerProtectTags: true,
-};
 
 interface SecureViewProps {
   onBack?: () => void;
@@ -64,7 +31,6 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
   const [sourceCode, setSourceCode] = useState<string>('');
   const [outputCode, setOutputCode] = useState<string>('');
   const [format, setFormat] = useState<CodeFormat>('html');
-  const [shieldMode, setShieldMode] = useState<'ultra' | 'minify'>('ultra');
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [stats, setStats] = useState<ProcessingStats | null>(null);
@@ -73,7 +39,7 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
   // Load sample code
   const handleLoadSample = (targetFormat?: CodeFormat) => {
     const fmt = targetFormat || format;
-    setSourceCode(SAMPLES[fmt as keyof typeof SAMPLES] || SAMPLES.html);
+    setSourceCode(SAMPLES[fmt] || SAMPLES.html);
     setErrorMsg(null);
   };
 
@@ -94,7 +60,7 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
 
   const executeSecureCode = () => {
     if (!sourceCode.trim()) {
-      setErrorMsg('Please paste or write source code before initiating security processing.');
+      setErrorMsg(`Please paste your ${format === 'html' ? 'HTML / Website & App' : 'Blogger XML'} code before securing.`);
       return;
     }
 
@@ -103,44 +69,14 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
     const startTime = performance.now();
 
     try {
-      const activeFormat = format;
-
-      const effectiveOptions: SecureOptions = {
-        ...DEFAULT_OPTIONS,
-        htmlProtectContainer: shieldMode === 'ultra',
-        jsAddTamperProtection: shieldMode === 'ultra',
-        jsMangleIdentifiers: shieldMode === 'ultra',
-        jsEncodeStringsHex: shieldMode === 'ultra',
-        jsStringArrayRotation: shieldMode === 'ultra',
-        jsConvertNumbersToHex: shieldMode === 'ultra',
-      };
-
       let result = '';
 
-      // 2. Format-aware processing pipeline
-      switch (activeFormat) {
-        case 'html':
-          result = shieldMode === 'ultra' ? encodeHtml(sourceCode) : minifyHtml(sourceCode, effectiveOptions);
-          break;
-
-        case 'javascript':
-          if (shieldMode === 'ultra') {
-            result = encodeJs(sourceCode);
-          } else {
-            result = minifyJs(sourceCode, effectiveOptions);
-          }
-          break;
-
-        case 'css':
-          result = minifyCss(sourceCode, effectiveOptions);
-          break;
-
-        case 'blogger':
-          result = processBloggerXml(sourceCode, effectiveOptions);
-          break;
-
-        default:
-          result = encodeHtml(sourceCode);
+      if (format === 'html') {
+        result = encodeHtml(sourceCode);
+      } else if (format === 'blogger') {
+        result = processBloggerXml(sourceCode);
+      } else {
+        result = encodeHtml(sourceCode);
       }
 
       const durationMs = Math.round(performance.now() - startTime);
@@ -156,7 +92,7 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
         processedSize: processedBytes,
         reductionPercentage: reduction,
         durationMs,
-        detectedFormat: activeFormat,
+        detectedFormat: format,
         timestamp: new Date().toLocaleTimeString(),
       });
     } catch (err: unknown) {
@@ -169,21 +105,24 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
     }
   };
 
-  const activeEffectiveFormat = format;
-
   // Prepare HTML payload for live preview testing
   const getPreviewDoc = () => {
     if (!outputCode) return '';
-    if (activeEffectiveFormat === 'html') {
-      return outputCode;
-    }
-    if (activeEffectiveFormat === 'javascript') {
-      return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>JS Preview Test</title><style>body{background:#0f172a;color:#f8fafc;font-family:sans-serif;padding:24px;}#log{background:#020617;padding:16px;border-radius:8px;font-family:monospace;margin-top:16px;border:1px solid #1e293b;}</style></head><body><h3>JavaScript Live Execution Test</h3><p>Protected script is executing below:</p><div id="log">Running script...</div><script>var l=document.getElementById("log");var _orig=l.innerText;<\/script><script>${outputCode}<\/script></body></html>`;
-    }
-    if (activeEffectiveFormat === 'css') {
-      return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${outputCode}</style></head><body style="background:#0f172a;color:#f8fafc;font-family:sans-serif;padding:24px;"><h2>CSS Stylesheet Test</h2><p>Styles applied successfully.</p></body></html>`;
-    }
     return outputCode;
+  };
+
+  const getPlaceholderText = () => {
+    if (format === 'html') {
+      return 'Please paste only HTML, Website & App code here...';
+    }
+    return 'Please paste only Blogger XML theme or widget code here...';
+  };
+
+  const getGuidanceBadge = () => {
+    if (format === 'html') {
+      return 'Target: HTML (Website & App Code) — Please paste only HTML / Website & App code here.';
+    }
+    return 'Target: Blogger XML (Theme & Widget Code) — Please paste only Blogger XML theme or widget code here.';
   };
 
   return (
@@ -196,24 +135,31 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
             <span>Secure Code Workspace</span>
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl">
-            High-strength code protection engine with encrypted runtime containers, identifier mangling, anti-inspection shields, and anti-debugging defense.
+            High-strength code protection engine with encrypted self-executing containers and error-free Blogger XML theme preservation.
           </p>
         </div>
 
-        {/* Global Format Selector */}
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-400 shrink-0">Select Format:</label>
+        {/* Global Format Selector: ONLY HTML and Blogger XML */}
+        <div className="flex items-center gap-2.5">
+          <label className="text-xs font-semibold text-slate-300 shrink-0">Select Format:</label>
           <select
             value={format}
-            onChange={(e) => setFormat(e.target.value as CodeFormat)}
-            className="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 font-medium focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+            onChange={(e) => {
+              setFormat(e.target.value as CodeFormat);
+              setErrorMsg(null);
+            }}
+            className="bg-slate-900 border border-cyan-500/40 text-cyan-200 text-xs sm:text-sm rounded-lg px-3.5 py-2 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none cursor-pointer"
           >
-            <option value="html">HTML (Web Document)</option>
-            <option value="javascript">JavaScript (Script &amp; Logic)</option>
-            <option value="css">CSS (Stylesheet)</option>
-            <option value="blogger">Blogger XML (Theme Template)</option>
+            <option value="html">HTML (Website &amp; App Code)</option>
+            <option value="blogger">Blogger XML (Theme &amp; Widget Code)</option>
           </select>
         </div>
+      </div>
+
+      {/* Target Format Guidance Indicator */}
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-cyan-950/40 border border-cyan-800/60 text-cyan-300 text-xs font-medium">
+        <Info className="w-4 h-4 text-cyan-400 shrink-0" />
+        <span>{getGuidanceBadge()}</span>
       </div>
 
       {/* Error Feedback Banner */}
@@ -227,14 +173,14 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
         </div>
       )}
 
-      {/* 1. Source Code Import Box (Always visible at the top) */}
-      <div className="flex flex-col space-y-3">
+      {/* 1. Source Code Import Box (Full Width) */}
+      <div className="w-full flex flex-col space-y-3">
         <CodeEditor
-          title="Source Code Input"
+          title={format === 'html' ? 'Source HTML / Website Code' : 'Source Blogger XML Theme'}
           value={sourceCode}
           onChange={setSourceCode}
-          placeholder={`Paste your ${format.toUpperCase()} source here...`}
-          format={activeEffectiveFormat}
+          placeholder={getPlaceholderText()}
+          format={format}
           onClear={handleClear}
           onLoadSample={() => handleLoadSample()}
           showBackupDownload={true}
@@ -242,83 +188,58 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
         />
       </div>
 
-      {/* 2. Processing Controls (Below Input Box) */}
+      {/* 2. Processing Controls (Full Protection Active Automatically) */}
       <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-wrap">
             <button
               onClick={executeSecureCode}
               disabled={isProcessing || !sourceCode.trim()}
-              className="px-6 py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-md hover:shadow-cyan-500/25 transition-all flex items-center gap-2 cursor-pointer"
+              className="px-7 py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-md hover:shadow-cyan-500/25 transition-all flex items-center gap-2 cursor-pointer"
             >
               {isProcessing ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Securing Source Code...</span>
+                  <span>Securing &amp; Encoding Code...</span>
                 </>
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Secure Code</span>
+                  <span>Secure Code (Encode)</span>
                 </>
               )}
             </button>
 
-            {/* Shield Level Selector */}
-            <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-1 text-xs">
-              <button
-                type="button"
-                onClick={() => setShieldMode('ultra')}
-                className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                  shieldMode === 'ultra'
-                    ? 'bg-cyan-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Ultra Shield Protection (Anti-Theft)
-              </button>
-              <button
-                type="button"
-                onClick={() => setShieldMode('minify')}
-                className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                  shieldMode === 'minify'
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Minify Only
-              </button>
-            </div>
+            <span className="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
+              <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+              <span>Full Protection &amp; Encoding Active</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 3. Output Box & Stats (Appears BELOW buttons when code is processed) */}
+      {/* 3. Output Box & Stats */}
       {outputCode && (
         <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
           {/* Active Protection Verification Badges */}
-          {shieldMode === 'ultra' && (
-            <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-800/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 text-cyan-300 font-medium">
-                <ShieldAlert className="w-4 h-4 text-cyan-400" />
-                <span>Security Engine Verification:</span>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-1 rounded bg-slate-900 border border-cyan-800/80 text-cyan-300 font-mono text-[11px] flex items-center gap-1">
-                  <EyeOff className="w-3 h-3" /> Anti-View-Source (Encrypted)
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-900 border border-cyan-800/80 text-cyan-300 font-mono text-[11px] flex items-center gap-1">
-                  <Lock className="w-3 h-3" /> Anti-Right-Click (Locked)
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-900 border border-cyan-800/80 text-cyan-300 font-mono text-[11px] flex items-center gap-1">
-                  <Lock className="w-3 h-3" /> Anti-DevTools / F12 (Blocked)
-                </span>
-                <span className="px-2.5 py-1 rounded bg-slate-900 border border-cyan-800/80 text-cyan-300 font-mono text-[11px] flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" /> 100% Executable
-                </span>
-              </div>
+          <div className="p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-800/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-cyan-300 font-medium">
+              <ShieldAlert className="w-4 h-4 text-cyan-400" />
+              <span>Security Engine Status:</span>
             </div>
-          )}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-1 rounded bg-slate-900 border border-cyan-800/80 text-cyan-300 font-mono text-[11px] flex items-center gap-1">
+                <EyeOff className="w-3 h-3" /> Anti-View-Source Encoded
+              </span>
+              <span className="px-2.5 py-1 rounded bg-slate-900 border border-cyan-800/80 text-cyan-300 font-mono text-[11px] flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Anti-Theft Protected
+              </span>
+              <span className="px-2.5 py-1 rounded bg-slate-900 border border-cyan-800/80 text-emerald-300 font-mono text-[11px] flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" /> 
+                {format === 'blogger' ? '100% Blogger Theme Safe' : '100% Executable Web Code'}
+              </span>
+            </div>
+          </div>
 
           {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-900/60 border border-slate-800">
@@ -339,12 +260,12 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
               </div>
 
               <div>
-                <div className="text-xs text-slate-400">Security Layer</div>
+                <div className="text-xs text-slate-400">Security Mode</div>
                 <div className="text-lg font-mono font-bold text-emerald-400 tabular-nums">
-                  {shieldMode === 'ultra' ? 'High Shield' : 'Minified'}
+                  Full Protection
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  {shieldMode === 'ultra' ? 'Multi-Layer Protected' : 'Whitespace Compressed'}
+                  {format === 'blogger' ? 'XML Theme Preserved' : 'Encrypted Self-Runner'}
                 </div>
               </div>
 
@@ -361,13 +282,13 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
             </div>
           )}
 
-          <div className="flex flex-col space-y-3">
+          <div className="w-full flex flex-col space-y-3">
             <CodeEditor
               title="Secured Output"
               value={outputCode}
               readOnly={true}
               placeholder="Processed output will appear here after clicking 'Secure Code'..."
-              format={activeEffectiveFormat}
+              format={format}
               showBackupDownload={true}
               originalSourceForBackup={sourceCode}
             />
@@ -376,7 +297,7 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Production Ready</span>
+                  <span>Ready to Use</span>
                 </div>
 
                 {/* Test & Run Output in Live Sandbox */}
@@ -412,9 +333,6 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
                 <h3 className="font-semibold text-white text-sm">
                   Live Execution Test (Sandbox)
                 </h3>
-                <span className="text-[11px] text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800">
-                  Try Right-Click or F12 inside preview to verify protection
-                </span>
               </div>
               <button
                 onClick={() => setShowLivePreview(false)}

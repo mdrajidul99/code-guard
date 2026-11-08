@@ -46,32 +46,18 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
 
   const formatCards = [
     {
-      name: 'HTML Documents',
+      name: 'HTML (Website & App Code)',
       ext: '.html',
       icon: <FileCode className="w-5 h-5 text-cyan-400" />,
       desc: 'Encodes markup into self-executing, non-destructive runners that display flawlessly in browsers without overwriting host pages.',
       features: ['Self-executing encoded runner', 'Non-destructive DOM rendering', 'Complete view-source protection', 'Instant one-click restore'],
     },
     {
-      name: 'JavaScript Files',
-      ext: '.js',
-      icon: <Code2 className="w-5 h-5 text-cyan-400" />,
-      desc: 'Universal self-executing JavaScript encoder that obscures all logic, APIs, and functions while maintaining 100% execution fidelity.',
-      features: ['Zero syntax collision risk', 'Global indirect execution', 'Full UTF-8 & multibyte support', 'One-click decode & format'],
-    },
-    {
-      name: 'CSS Stylesheets',
-      ext: '.css',
-      icon: <Layers className="w-5 h-5 text-cyan-400" />,
-      desc: 'High-density stylesheet minification with strict preservation of CSS variables, media queries, keyframes, and browser vendor prefixes.',
-      features: ['Hex color shortening', 'Zero unit stripping', 'Custom property preservation', 'Keyframe & query safety'],
-    },
-    {
-      name: 'Blogger XML Themes',
+      name: 'Blogger XML (Themes & Widgets)',
       ext: '.xml',
       icon: <Zap className="w-5 h-5 text-cyan-400" />,
       desc: 'Specialized engine built specifically for Blogger template architects. Preserves widget blocks, includables, and expressions while encoding custom scripts.',
-      features: ['Strict XML validation', 'Blogger-safe CDATA runner', 'Zero theme editor save errors', 'Template structure integrity'],
+      features: ['Zero theme editor save errors', 'Blogger-safe CDATA runner', 'Preserves all b:includable tags', 'Template structure integrity'],
     },
   ];
 
@@ -81,11 +67,11 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
       {/* Hero Section */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15] text-balance">
-          Protect, Minify, &amp; Restore Your Source Code
+          Protect, Encode, &amp; Restore Your Source Code
         </h1>
 
         <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto">
-          CodeGaurd provides browser-based code protection, minification, obfuscation, and supported code restoration for HTML, JavaScript, CSS, and Blogger XML themes. 100% client-side with zero server transmission.
+          CodeGaurd provides browser-based code protection, self-executing encoding, and supported code restoration for HTML (Website &amp; App Code) and Blogger XML themes. 100% client-side with zero server transmission.
         </p>
 
         {/* Hero CTAs */}

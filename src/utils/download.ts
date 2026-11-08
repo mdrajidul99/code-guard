@@ -64,10 +64,6 @@ export function getFormatFileInfo(format: CodeFormat, isBackup = false): { exten
   switch (format) {
     case 'html':
       return { extension: '.html', mimeType: 'text/html;charset=utf-8' };
-    case 'javascript':
-      return { extension: '.js', mimeType: 'text/javascript;charset=utf-8' };
-    case 'css':
-      return { extension: '.css', mimeType: 'text/css;charset=utf-8' };
     case 'blogger':
       return { extension: '.xml', mimeType: 'application/xml;charset=utf-8' };
     default:

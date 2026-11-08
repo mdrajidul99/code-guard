@@ -1,4 +1,4 @@
-export type CodeFormat = 'html' | 'javascript' | 'css' | 'blogger';
+export type CodeFormat = 'html' | 'blogger';
 
 export interface SecureOptions {
   // HTML Options
@@ -8,20 +8,15 @@ export interface SecureOptions {
   htmlMinifyInlineJs: boolean;
   htmlProtectContainer: boolean;
 
-  // JavaScript Options
-  jsMinifyWhitespace: boolean;
-  jsRemoveComments: boolean;
-  jsMangleIdentifiers: boolean;
-  jsEncodeStringsHex: boolean;
-  jsStringArrayRotation: boolean;
-  jsConvertNumbersToHex: boolean;
-  jsAddTamperProtection: boolean;
+  // JavaScript Options (used for inline scripts)
+  jsMinifyWhitespace?: boolean;
+  jsRemoveComments?: boolean;
 
-  // CSS Options
-  cssMinifyWhitespace: boolean;
-  cssRemoveComments: boolean;
-  cssShortenHexColors: boolean;
-  cssRemoveZeroUnits: boolean;
+  // CSS Options (used for inline styles / Blogger skin)
+  cssMinifyWhitespace?: boolean;
+  cssRemoveComments?: boolean;
+  cssShortenHexColors?: boolean;
+  cssRemoveZeroUnits?: boolean;
 
   // Blogger XML Options
   bloggerValidateXml: boolean;

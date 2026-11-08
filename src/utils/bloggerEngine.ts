@@ -30,14 +30,12 @@ export function isFullBloggerTemplate(code: string): boolean {
 
 /**
  * Processes Blogger XML templates and widgets with 100% Blogger Theme Editor compatibility.
- * - For Full Blogger Templates:
- *   1. Preserves all Blogger tags (<b:skin>, <b:section>, <b:widget>, <b:includable>, <data:.../>)
- *      so that the Blogger Theme Editor NEVER throws XML parsing or layout errors.
- *   2. Automatically encodes custom JavaScript scripts inside <script> tags into
- *      Blogger-compliant //<![CDATA[ ... //]]> self-executing Base64 runners.
- *   3. Safely minifies CSS inside <b:skin><![CDATA[ ... ]]></b:skin> while keeping Blogger variables intact.
- * - For Blogger Gadgets / Snippets:
- *   Wraps the snippet into an XML-safe CDATA runner that can be placed in Blogger widgets or theme HTML.
+ * - Guarantees ZERO XML Parsing Errors (e.g. SAXParseException on b:includable or unmatched tags).
+ * - Leaves all external scripts (with src=) untouched.
+ * - Leaves all self-closing scripts (<script ... />) untouched.
+ * - Leaves all dynamic Blogger tags (<b:includable>, <b:widget>, <data:...>, <expr:...>) untouched.
+ * - Safely wraps standalone custom scripts into Blogger-compliant //<![CDATA[ ... //]]> runners.
+ * - Safely minifies CSS inside <b:skin><![CDATA[ ... ]]></b:skin> while keeping Blogger variables intact.
  */
 export function processBloggerXml(xmlCode: string, options: Partial<SecureOptions> = {}): string {
   const trimmed = xmlCode.trim();
@@ -69,38 +67,32 @@ export function processBloggerXml(xmlCode: string, options: Partial<SecureOption
     }
 
     // 2. Encode custom JavaScript <script> tags into XML-safe CDATA runners
-    // Exclude JSON-LD and custom data templates
-    const scriptRegex = /(<script\b(?![^>]*\btype=["'](?:application\/ld\+json|text\/template|text\/x-template)["'])[^>]*>)([\s\S]*?)(<\/script>)/gi;
+    // CRITICAL FIX: Only match scripts that have real inline code and DO NOT cross XML/Blogger boundaries!
+    output = output.replace(/(<script\b([^>]*)>)([\s\S]*?)(<\/script>)/gi, (match, openTag, attrs, content, closeTag) => {
+      // 1. Skip if external script with src attribute
+      if (/\bsrc\s*=/i.test(attrs)) return match;
+      // 2. Skip if self-closing opening tag
+      if (openTag.trim().endsWith('/>')) return match;
+      // 3. Skip JSON-LD, text/template, or other non-executable types
+      if (/\btype\s*=\s*["']?(?:application\/(?:ld\+)?json|text\/template|text\/x-template)/i.test(attrs)) return match;
+      // 4. Skip if content has another opening <script (means earlier script was unclosed or self-closing)
+      if (/<script\b/i.test(content)) return match;
+      // 5. CRITICAL: Skip if content contains Blogger XML tags like <b:widget>, <b:includable>, <data:...>, <expr:...>
+      // These are Blogger server-evaluated XML directives and MUST NEVER be touched or destroyed!
+      if (/<b:|<\/b:|<data:|<expr:/i.test(content)) return match;
+      // 6. Skip if empty or whitespace only
+      if (!content.trim()) return match;
 
-    output = output.replace(scriptRegex, (match, openTag, jsContent, closeTag) => {
-      // Clean any existing CDATA delimiters from inside the script
-      let rawJs = jsContent.trim();
+      // Extract pure JS content without CDATA wrapper
+      let rawJs = content.trim();
       rawJs = rawJs.replace(/\/\/<!\[CDATA\[/gi, '').replace(/\/\/\]\]>/gi, '');
       rawJs = rawJs.replace(/<!\[CDATA\[/gi, '').replace(/\]\]>/gi, '');
       rawJs = rawJs.trim();
-
       if (!rawJs) return match;
 
-      // Encode JS to UTF-8 Base64
       const b64 = encodeUtf8ToBase64(rawJs);
 
-      // Package in Blogger-compatible CDATA runner (prevents XML & entity parsing errors)
-      const protectedRunner = `
-//<![CDATA[
-/* CodeGaurd Protected Blogger Script */
-(function(){
-  var _0xb = "${b64}";
-  try {
-    var _b = window.atob(_0xb), _l = _b.length, _y = new Uint8Array(_l);
-    for (var i = 0; i < _l; i++) { _y[i] = _b.charCodeAt(i); }
-    var _c = new TextDecoder('utf-8').decode(_y);
-    (1, eval)(_c);
-  } catch(e) {
-    (1, eval)(decodeURIComponent(escape(window.atob(_0xb))));
-  }
-})();
-//]]>
-`;
+      const protectedRunner = `\n//<![CDATA[\n/* CodeGaurd Protected Blogger Script */\n(function(){\n  var _0xb = "${b64}";\n  try {\n    var _b = window.atob(_0xb), _l = _b.length, _y = new Uint8Array(_l);\n    for (var i = 0; i < _l; i++) { _y[i] = _b.charCodeAt(i); }\n    var _c = new TextDecoder('utf-8').decode(_y);\n    (1, eval)(_c);\n  } catch(e) {\n    (1, eval)(decodeURIComponent(escape(window.atob(_0xb))));\n  }\n})();\n//]]>\n`;
       return `${openTag}${protectedRunner}${closeTag}`;
     });
 
