@@ -1,6 +1,7 @@
 import beautify from 'js-beautify';
 import { CodeFormat, RestoreOptions, RestoreStats } from '../types/index.ts';
-import { detectFormat } from './detectFormat.ts';
+import { decodeBase64ToUtf8, decodeHexString } from './encodingUtils.ts';
+import { restoreBloggerXml } from './bloggerEngine.ts';
 
 /**
  * Reverses hex escape sequences (\xHH) into their corresponding UTF-8 characters.
@@ -11,7 +12,6 @@ export function deescapeHexStrings(code: string): { result: string; count: numbe
     count++;
     try {
       const codePoint = parseInt(hex, 16);
-      // Return printable character
       if (codePoint >= 32 && codePoint <= 126 && codePoint !== 34 && codePoint !== 39 && codePoint !== 92) {
         return String.fromCharCode(codePoint);
       }
@@ -44,10 +44,39 @@ export function deescapeUnicodeStrings(code: string): { result: string; count: n
 }
 
 /**
- * Detects CodeGaurd self-extracting HTML container and unpacks original source.
+ * Detects CodeGaurd and common self-executing HTML encoded runners and unpacks the original source.
  */
-export function unpackProtectedHtmlContainer(code: string): { unpacked: string | null } {
-  // Check for XOR-encrypted container: var _0xk = <num>; var _0xp = "<base64>";
+export function unpackProtectedHtml(code: string): { unpacked: string | null } {
+  // 1. Check for standard CodeGaurd HTML runner: var _0xdata = "<base64>";
+  const dataMatch = /var\s+_0xdata\s*=\s*["']([A-Za-z0-9+/=]+)["']/i.exec(code);
+  if (dataMatch && dataMatch[1]) {
+    try {
+      const decoded = decodeBase64ToUtf8(dataMatch[1]);
+      if (decoded && decoded.trim().length > 0) {
+        return { unpacked: decoded };
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  // 2. Check for document.write(decodeURIComponent(escape(window.atob("<base64>"))))
+  const writeAtobMatch = /document\.write\s*\(\s*(?:decodeURIComponent\s*\(\s*escape\s*\(\s*(?:window\.)?atob\s*\(\s*["']([A-Za-z0-9+/=]+)["']\s*\)\s*\)|(?:window\.)?atob\s*\(\s*["']([A-Za-z0-9+/=]+)["']\s*\))\s*\)/i.exec(code);
+  if (writeAtobMatch) {
+    const b64 = writeAtobMatch[1] || writeAtobMatch[2];
+    if (b64) {
+      try {
+        const decoded = decodeBase64ToUtf8(b64);
+        if (decoded && decoded.trim().length > 0) {
+          return { unpacked: decoded };
+        }
+      } catch {
+        // Fallback
+      }
+    }
+  }
+
+  // 3. Check for legacy XOR container: var _0xk = <num>; var _0xp = "<base64>";
   const xorMatch = /var\s+_0xk\s*=\s*(\d+);\s*var\s+_0xp\s*=\s*["']([A-Za-z0-9+/=]+)["']/i.exec(code);
   if (xorMatch && xorMatch[1] && xorMatch[2]) {
     try {
@@ -65,21 +94,42 @@ export function unpackProtectedHtmlContainer(code: string): { unpacked: string |
     }
   }
 
-  // Check for legacy Base64 container: var _0xdata = "<base64>";
-  const match = /var\s+_0xdata\s*=\s*["']([A-Za-z0-9+/=]+)["']/i.exec(code);
-  if (match && match[1]) {
+  return { unpacked: null };
+}
+
+/**
+ * Detects CodeGaurd and common self-executing JavaScript encoded runners and unpacks original JS.
+ */
+export function unpackProtectedJs(code: string): { unpacked: string | null } {
+  // 1. Check for standard CodeGaurd JS runner: var _0xjs = "<base64>";
+  const jsMatch = /var\s+_0xjs\s*=\s*["']([A-Za-z0-9+/=]+)["']/i.exec(code);
+  if (jsMatch && jsMatch[1]) {
     try {
-      const binary = atob(match[1]);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
+      const decoded = decodeBase64ToUtf8(jsMatch[1]);
+      if (decoded && decoded.trim().length > 0) {
+        return { unpacked: decoded };
       }
-      const decoded = new TextDecoder('utf-8').decode(bytes);
-      return { unpacked: decoded };
     } catch {
-      return { unpacked: null };
+      // Fallback
     }
   }
+
+  // 2. Check for eval(decodeURIComponent(escape(window.atob("<base64>")))) or eval(atob("<base64>"))
+  const evalAtobMatch = /eval\s*\(\s*(?:decodeURIComponent\s*\(\s*escape\s*\(\s*(?:window\.)?atob\s*\(\s*["']([A-Za-z0-9+/=]+)["']\s*\)\s*\)|(?:window\.)?atob\s*\(\s*["']([A-Za-z0-9+/=]+)["']\s*\))\s*\)/i.exec(code);
+  if (evalAtobMatch) {
+    const b64 = evalAtobMatch[1] || evalAtobMatch[2];
+    if (b64) {
+      try {
+        const decoded = decodeBase64ToUtf8(b64);
+        if (decoded && decoded.trim().length > 0) {
+          return { unpacked: decoded };
+        }
+      } catch {
+        // Fallback
+      }
+    }
+  }
+
   return { unpacked: null };
 }
 
@@ -88,7 +138,6 @@ export function unpackProtectedHtmlContainer(code: string): { unpacked: string |
  */
 export function resolveStringArrayTable(code: string): { result: string; count: number } {
   let count = 0;
-  // Match: const _0x4e1a = ["...", "..."]; function _0x8f2c(_0xidx){return _0x4e1a[_0xidx];};
   const tableRegex = /const\s+(_0x[a-f0-9]+)\s*=\s*\[([\s\S]*?)\];\s*function\s+(_0x[a-f0-9]+)\s*\([^)]*\)\s*\{[^}]*return\s+\1\[[^\]]+\];?\s*\};?/i;
   const match = tableRegex.exec(code);
 
@@ -97,7 +146,6 @@ export function resolveStringArrayTable(code: string): { result: string; count: 
     const accessorFunc = match[3];
 
     try {
-      // Parse strings from the array safely without eval
       const stringLiterals: string[] = [];
       const itemRegex = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/g;
       let itemMatch: RegExpExecArray | null;
@@ -107,10 +155,7 @@ export function resolveStringArrayTable(code: string): { result: string; count: 
       }
 
       if (stringLiterals.length > 0) {
-        // Strip the table declaration
         let cleaned = code.replace(match[0], '');
-
-        // Replace all accessor function calls: _0x8f2c(0) or _0x8f2c(0x1a) -> "string"
         const callRegex = new RegExp(`\\b${accessorFunc}\\s*\\(\\s*(0x[0-9a-fA-F]+|\\d+)\\s*\\)`, 'g');
         cleaned = cleaned.replace(callRegex, (fullCall, idxStr) => {
           const idx = idxStr.toLowerCase().startsWith('0x')
@@ -134,7 +179,7 @@ export function resolveStringArrayTable(code: string): { result: string; count: 
 }
 
 /**
- * Executes full restore and beautification pipeline.
+ * Executes full restore and decoding pipeline.
  */
 export function restoreCode(
   inputCode: string,
@@ -143,21 +188,56 @@ export function restoreCode(
 ): { code: string; stats: RestoreStats; notes: string[] } {
   const startTime = performance.now();
   const notes: string[] = [];
-  let currentCode = inputCode;
+  let currentCode = inputCode.trim();
   let decodedCount = 0;
 
-  // 1. Target format
   const resolvedFormat = format;
 
-  // 2. Check for CodeGaurd Protected HTML Container
-  const containerCheck = unpackProtectedHtmlContainer(currentCode);
-  if (containerCheck.unpacked) {
-    currentCode = containerCheck.unpacked;
-    decodedCount += 1;
-    notes.push('Extracted original HTML document from CodeGaurd Protected Container.');
+  // 1. Format-specific unpacking
+  if (resolvedFormat === 'blogger') {
+    // Unpack Blogger XML
+    const bloggerResult = restoreBloggerXml(currentCode);
+    if (bloggerResult.decodedCount > 0) {
+      currentCode = bloggerResult.code;
+      decodedCount += bloggerResult.decodedCount;
+      notes.push(`Decoded ${bloggerResult.decodedCount} protected scripts inside Blogger XML.`);
+    }
+  } else if (resolvedFormat === 'html') {
+    // Unpack HTML runner
+    const htmlUnpack = unpackProtectedHtml(currentCode);
+    if (htmlUnpack.unpacked) {
+      currentCode = htmlUnpack.unpacked;
+      decodedCount += 1;
+      notes.push('Successfully decoded and unpacked protected HTML payload.');
+    }
+  } else if (resolvedFormat === 'javascript') {
+    // Unpack JavaScript runner
+    const jsUnpack = unpackProtectedJs(currentCode);
+    if (jsUnpack.unpacked) {
+      currentCode = jsUnpack.unpacked;
+      decodedCount += 1;
+      notes.push('Successfully decoded and unpacked protected JavaScript payload.');
+    }
   }
 
-  // 3. Resolve string array tables if enabled
+  // Cross-check: If not unpacked yet, attempt general HTML or JS unpack
+  if (decodedCount === 0) {
+    const htmlCheck = unpackProtectedHtml(currentCode);
+    if (htmlCheck.unpacked) {
+      currentCode = htmlCheck.unpacked;
+      decodedCount += 1;
+      notes.push('Detected and decoded encoded HTML container.');
+    } else {
+      const jsCheck = unpackProtectedJs(currentCode);
+      if (jsCheck.unpacked) {
+        currentCode = jsCheck.unpacked;
+        decodedCount += 1;
+        notes.push('Detected and decoded encoded JavaScript payload.');
+      }
+    }
+  }
+
+  // 2. Resolve string array tables if enabled
   if (options.resolveStringArrays !== false) {
     const stringArrayResult = resolveStringArrayTable(currentCode);
     if (stringArrayResult.count > 0) {
@@ -167,7 +247,7 @@ export function restoreCode(
     }
   }
 
-  // 4. De-escape hex escape sequences if enabled
+  // 3. De-escape hex escape sequences if enabled
   if (options.deescapeHex !== false) {
     const hexResult = deescapeHexStrings(currentCode);
     if (hexResult.count > 0) {
@@ -177,7 +257,7 @@ export function restoreCode(
     }
   }
 
-  // 5. De-escape unicode escape sequences if enabled
+  // 4. De-escape unicode escape sequences if enabled
   if (options.deescapeUnicode !== false) {
     const unicodeResult = deescapeUnicodeStrings(currentCode);
     if (unicodeResult.count > 0) {
@@ -187,7 +267,7 @@ export function restoreCode(
     }
   }
 
-  // 6. Beautify / Format based on format
+  // 5. Beautify / Format based on target format
   const indentSize = options.indentSize || 2;
   const beautifyOptions = {
     indent_size: indentSize,
@@ -206,24 +286,22 @@ export function restoreCode(
         indent_inner_html: true,
         extra_liners: ['head', 'body', '/html'],
       });
-      notes.push('Applied structural HTML tag indentation and nesting.');
+      notes.push('Formatted HTML structure with clean indentation.');
     } else if (resolvedFormat === 'css') {
       formattedCode = beautify.css(currentCode, beautifyOptions);
       notes.push('Formatted CSS rulesets, properties, and media queries.');
     } else if (resolvedFormat === 'blogger') {
-      // Blogger XML: use XML/HTML beautifier carefully
       formattedCode = beautify.html(currentCode, {
         ...beautifyOptions,
         indent_inner_html: true,
       });
-      notes.push('Reformatted Blogger XML structure with preserved namespaces and tags.');
+      notes.push('Formatted Blogger XML structure with preserved namespaces and tags.');
     } else {
-      // Default to JS
       formattedCode = beautify.js(currentCode, beautifyOptions);
-      notes.push('Formatted JavaScript statements, blocks, and syntax.');
+      notes.push('Formatted JavaScript code blocks and statements.');
     }
   } catch (err: unknown) {
-    notes.push('Notice: Format beautification encountered a syntax irregularity; returned best-effort structure.');
+    notes.push('Notice: Format beautification completed with best-effort structure.');
   }
 
   const durationMs = Math.round(performance.now() - startTime);

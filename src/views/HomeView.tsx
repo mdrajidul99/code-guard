@@ -27,20 +27,20 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
       a: 'No. All minification, obfuscation, format checking, and restoration occur entirely locally inside your browser via web-native JavaScript execution. Your source code never leaves your device or travels across network wires.',
     },
     {
-      q: 'Will obfuscated JavaScript or minified HTML break my site?',
-      a: 'CodeGaurd preserves HTML DOM attributes, IDs, accessibility landmarks, and event listeners. For JavaScript, standard identifier mangling and string lookup tables keep syntax execution intact. However, we always recommend testing thoroughly in a staging environment and using the "Backup" button before deploying to production.',
+      q: 'Will secured JavaScript or encoded HTML break my site or Blogger theme?',
+      a: 'No. CodeGaurd uses non-destructive self-executing encoded runners for HTML and JavaScript, and preserves XML declarations, namespaces, and widget tags for Blogger XML themes. Your code executes smoothly without syntax errors or broken layouts.',
     },
     {
       q: 'Can CodeGaurd make client-side code 100% unhackable?',
-      a: 'No, and any service claiming to do so is dishonest. Because browsers must parse and execute HTML, CSS, and JavaScript, motivated individuals can always inspect memory, network requests, or DOM nodes using Developer Tools. CodeGaurd provides deterrent-grade protection making casual copying and quick inspection far more difficult.',
+      a: 'Because web browsers must execute client-side code, motivated individuals with developer tools can inspect running memory. However, CodeGaurd provides deterrent-grade encoded protection, completely obscuring raw HTML markup, scripts, and logic from view-source and casual copying.',
     },
     {
-      q: 'How does Blogger XML protection differ from standard HTML minification?',
-      a: 'Blogger XML contains proprietary namespaces (xmlns:b, xmlns:data, xmlns:expr), widget definitions, CDATA blocks, and <b:includable> tags. Blindly running standard HTML minifiers strips or corrupts these critical Blogger directives. CodeGaurd isolates CDATA sections and preserves all Blogger template syntax.',
+      q: 'How does Blogger XML protection ensure zero theme errors?',
+      a: 'Blogger XML requires strict adherence to Blogger tags (xmlns:b, <b:skin>, <b:section>, <b:widget>). CodeGaurd isolates CDATA sections and wraps custom JavaScript in Blogger-compliant //<![CDATA[ ... //]]> self-executing runners, ensuring the Blogger Theme Editor saves and publishes without XML parsing errors.',
     },
     {
-      q: 'Can CodeGaurd reverse any obfuscated code?',
-      a: 'CodeGaurd restores code formatting, re-indents structural trees, decodes hexadecimal and unicode character escapes, and reconstitutes string array lookup tables. It cannot guess originally removed comments or variable names that were irreversibly mangled.',
+      q: 'Can CodeGaurd restore and decode previously secured code?',
+      a: 'Yes! CodeGaurd detects protected HTML and JavaScript runners, Blogger XML CDATA scripts, Base64 payloads, hexadecimal/unicode escapes, and reconstitutes the clean, beautifully formatted original code in one click.',
     },
   ];
 
@@ -49,15 +49,15 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
       name: 'HTML Documents',
       ext: '.html',
       icon: <FileCode className="w-5 h-5 text-cyan-400" />,
-      desc: 'Compresses DOM trees, strips non-essential comments, minifies inline CSS and scripts, and offers self-extracting container encapsulation.',
-      features: ['Inline style compression', 'Inline script minification', 'Event handler & ID preservation', 'Protected container mode'],
+      desc: 'Encodes markup into self-executing, non-destructive runners that display flawlessly in browsers without overwriting host pages.',
+      features: ['Self-executing encoded runner', 'Non-destructive DOM rendering', 'Complete view-source protection', 'Instant one-click restore'],
     },
     {
       name: 'JavaScript Files',
       ext: '.js',
       icon: <Code2 className="w-5 h-5 text-cyan-400" />,
-      desc: 'Industrial-grade identifier mangling, string lookup table rotation, hexadecimal character encoding, and syntax compression.',
-      features: ['Identifier mangling (_0x...)', 'Scrambled string arrays', 'Hex string escaping', 'Zero eval() risk'],
+      desc: 'Universal self-executing JavaScript encoder that obscures all logic, APIs, and functions while maintaining 100% execution fidelity.',
+      features: ['Zero syntax collision risk', 'Global indirect execution', 'Full UTF-8 & multibyte support', 'One-click decode & format'],
     },
     {
       name: 'CSS Stylesheets',
@@ -70,8 +70,8 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
       name: 'Blogger XML Themes',
       ext: '.xml',
       icon: <Zap className="w-5 h-5 text-cyan-400" />,
-      desc: 'Specialized engine built specifically for Blogger template architects. Preserves widget blocks, includables, and expressions while minifying skin CDATA.',
-      features: ['Strict XML validation', 'CDATA skin minification', 'Widget & namespace safe', 'Template structure integrity'],
+      desc: 'Specialized engine built specifically for Blogger template architects. Preserves widget blocks, includables, and expressions while encoding custom scripts.',
+      features: ['Strict XML validation', 'Blogger-safe CDATA runner', 'Zero theme editor save errors', 'Template structure integrity'],
     },
   ];
 

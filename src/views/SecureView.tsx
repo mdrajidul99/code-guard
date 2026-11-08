@@ -7,8 +7,8 @@ import {
 } from '../types/index.ts';
 import { detectFormat } from '../utils/detectFormat.ts';
 import { SAMPLES } from '../utils/samples.ts';
-import { minifyHtml } from '../utils/htmlEngine.ts';
-import { minifyJs, obfuscateJs } from '../utils/jsEngine.ts';
+import { minifyHtml, encodeHtml } from '../utils/htmlEngine.ts';
+import { minifyJs, encodeJs } from '../utils/jsEngine.ts';
 import { minifyCss } from '../utils/cssEngine.ts';
 import { processBloggerXml } from '../utils/bloggerEngine.ts';
 import { CodeEditor } from '../components/CodeEditor.tsx';
@@ -120,12 +120,12 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
       // 2. Format-aware processing pipeline
       switch (activeFormat) {
         case 'html':
-          result = minifyHtml(sourceCode, effectiveOptions);
+          result = shieldMode === 'ultra' ? encodeHtml(sourceCode) : minifyHtml(sourceCode, effectiveOptions);
           break;
 
         case 'javascript':
           if (shieldMode === 'ultra') {
-            result = obfuscateJs(sourceCode, effectiveOptions);
+            result = encodeJs(sourceCode);
           } else {
             result = minifyJs(sourceCode, effectiveOptions);
           }
@@ -140,7 +140,7 @@ export const SecureView: React.FC<SecureViewProps> = ({ onBack, onNavigate }) =>
           break;
 
         default:
-          result = minifyHtml(sourceCode, effectiveOptions);
+          result = encodeHtml(sourceCode);
       }
 
       const durationMs = Math.round(performance.now() - startTime);

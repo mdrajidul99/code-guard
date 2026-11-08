@@ -18,7 +18,75 @@ import {
   Layers
 } from 'lucide-react';
 
-const SAMPLE_OBFUSCATED = `const _0x4e1a=["\\x43\\x6c\\x69\\x65\\x6e\\x74\\x20\\x53\\x65\\x73\\x73\\x69\\x6f\\x6e\\x20\\x41\\x63\\x74\\x69\\x76\\x65","\\x63\\x6f\\x6e\\x66\\x69\\x67\\x75\\x72\\x65\\x64\\x4e\\x6f\\x64\\x65\\x73"];function _0x8f2c(_0xidx){return _0x4e1a[_0xidx];};function _0x1a00(_0x1a01,_0x1a02){const _0x1a03=_0x8f2c(0);if(_0x1a01>0x10){console.log(_0x1a03,_0x8f2c(1),_0x1a02);}return true;}_0x1a00(0x20,"NodeCluster_US_EAST");`;
+const RESTORE_SAMPLES: Record<CodeFormat, string> = {
+  html: `<!-- ======================================================== -->
+<!-- Code Protected & Encoded by CodeGaurd Ultra Shield Engine -->
+<!-- ======================================================== -->
+<script type="text/javascript">
+(function() {
+  var _0xdata = "PGRpdiBjbGFzcz0idXNlci1jYXJkIj4KICA8aDI+U2VjdXJlIENsaWVudCBQb3J0YWw8L2gyPgogIDxwPldlbGNvbWUgdG8geW91ciBzZWN1cmVkIGRhc2hib2FyZC48L3A+CiAgPGJ1dHRvbiBjbGFzcz0iYnRuIiBvbmNsaWNrPSJhbGVydCgnQ29ubmVjdGVkIScpIj5Db25uZWN0PC9idXR0b24+CjwvZGl2Pg==";
+  try {
+    var _bin = window.atob(_0xdata);
+    var _len = _bin.length;
+    var _bytes = new Uint8Array(_len);
+    for (var i = 0; i < _len; i++) {
+      _bytes[i] = _bin.charCodeAt(i);
+    }
+    var _html = new TextDecoder('utf-8').decode(_bytes);
+    document.write(_html);
+  } catch(e) {
+    document.write(decodeURIComponent(escape(window.atob(_0xdata))));
+  }
+})();
+</script>`,
+
+  javascript: `/* ======================================================== */
+/* Code Protected & Encoded by CodeGaurd Ultra Shield Engine */
+/* ======================================================== */
+(function() {
+  var _0xjs = "ZnVuY3Rpb24gaW5pdGlhbGl6ZUFwcChjbGllbnRJZCkgewogIGNvbnNvbGUubG9nKCdJbml0aWFsaXppbmcgYXBwbGljYXRpb24gZm9yIGNsaWVudDogJyArIGNsaWVudElkKTsKICByZXR1cm4gewogICAgc3RhdHVzOiAnYWN0aXZlJywKICAgIHNlc3Npb246IERhdGUubm93KCkKICB9Owp9CmluaXRpYWxpemVBcHAoJ0FQUF9OQVYtMTA5MicpOw==";
+  try {
+    var _bin = window.atob(_0xjs);
+    var _len = _bin.length;
+    var _bytes = new Uint8Array(_len);
+    for (var i = 0; i < _len; i++) {
+      _bytes[i] = _bin.charCodeAt(i);
+    }
+    var _code = new TextDecoder('utf-8').decode(_bytes);
+    (1, eval)(_code);
+  } catch(e) {
+    (1, eval)(decodeURIComponent(escape(window.atob(_0xjs))));
+  }
+})();`,
+
+  blogger: `<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b'>
+<head>
+  <b:skin><![CDATA[body{background:#fff;color:#222;}]]></b:skin>
+  <script type='text/javascript'>
+  //<![CDATA[
+  (function(){
+    var _0xb = "ZnVuY3Rpb24gcmVuZGVyQmxvZyhpZCkgewogIGNvbnNvbGUubG9nKCdSZW5kZXJpbmcgYmxvZyBwb3N0OiAnICsgaWQpOwp9CnJlbmRlckJsb2coJzk0ODExJyk7";
+    try {
+      var _b = window.atob(_0xb), _l = _b.length, _y = new Uint8Array(_l);
+      for (var i = 0; i < _l; i++) { _y[i] = _b.charCodeAt(i); }
+      var _c = new TextDecoder('utf-8').decode(_y);
+      (1, eval)(_c);
+    } catch(e) {
+      (1, eval)(decodeURIComponent(escape(window.atob(_0xb))));
+    }
+  })();
+  //]]>
+  </script>
+</head>
+<body>
+  <b:section id='main'><b:widget id='Blog1' type='Blog'><b:includable id='main'><h1>Blog</h1></b:includable></b:widget></b:section>
+</body>
+</html>`,
+
+  css: `body{margin:0;padding:0;background:#0f172a;color:#f8fafc;font-family:sans-serif}.card{background:#1e293b;border-radius:12px;padding:24px;border:1px solid #334155}.btn{background:#0284c7;color:#fff;border-radius:6px;padding:8px 16px;cursor:pointer}`
+};
 
 interface RestoreViewProps {
   onBack?: () => void;
@@ -49,9 +117,9 @@ export const RestoreView: React.FC<RestoreViewProps> = ({ onBack, onNavigate }) 
     setErrorMsg(null);
   };
 
-  const handleLoadSample = () => {
-    setSourceCode(SAMPLE_OBFUSCATED);
-    setFormat('javascript');
+  const handleLoadSample = (targetFormat?: CodeFormat) => {
+    const fmt = targetFormat || format;
+    setSourceCode(RESTORE_SAMPLES[fmt] || RESTORE_SAMPLES.javascript);
     setErrorMsg(null);
   };
 
