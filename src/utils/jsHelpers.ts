@@ -2,6 +2,19 @@ import type { ObfuscatorOptions } from 'javascript-obfuscator';
 import { CodeFormat, SecuritySettings } from '../types/index.ts';
 
 /**
+ * Cleans a single raw domain input (strips http(s)://, paths, ports, spaces).
+ */
+export function sanitizeDomainToken(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/.*$/, '')
+    .replace(/:\d+$/, '')
+    .trim()
+    .toLowerCase();
+}
+
+/**
  * Parses comma-, space-, semicolon-, or newline-separated domain input into clean hostnames.
  * Automatically adds www.blogger.com when format is 'blogger' and allowBloggerPreview is true.
  */
@@ -12,14 +25,7 @@ export function parseDomainList(
 ): string[] {
   const rawList = domainInput
     .split(/[\s,;]+/)
-    .map((item) =>
-      item
-        .trim()
-        .replace(/^https?:\/\//i, '')
-        .replace(/\/.*$/, '')
-        .replace(/:\d+$/, '')
-        .toLowerCase()
-    )
+    .map(sanitizeDomainToken)
     .filter((item) => item.length > 0);
 
   const unique = new Set<string>(rawList);
@@ -289,6 +295,21 @@ export function splitModuleImports(code: string): { imports: string; body: strin
     imports: code.slice(0, lastImportEnd).trim(),
     body: code.slice(lastImportEnd).trim(),
   };
+}
+
+/**
+ * Wraps the post-import body of a <script type="module"> inside an async IIFE
+ * so top-level variables/constants (like firebaseConfig, ADMIN_EMAIL, local functions)
+ * are treated as local scope and fully obfuscated into _0x... identifiers while
+ * preserving renameGlobals: false and explicit window.fn = ... exports.
+ */
+export function wrapModuleBodyForObfuscation(body: string): string {
+  const trimmed = body.trim();
+  if (!trimmed) return '';
+  if (/^\s*export\b/m.test(trimmed)) {
+    return trimmed;
+  }
+  return `(async function(){\n${trimmed}\n})();`;
 }
 
 /**

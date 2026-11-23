@@ -11,10 +11,11 @@ import {
 import { SAMPLES } from '../utils/samples.ts';
 import { processHtmlDocument } from '../utils/htmlEngine.ts';
 import { processBloggerXml } from '../utils/bloggerEngine.ts';
-import { parseDomainList } from '../utils/jsHelpers.ts';
+import { sanitizeDomainToken } from '../utils/jsHelpers.ts';
 import { clearStoredBackups, getStoredBackups, saveOriginalBackup } from '../utils/backupStorage.ts';
 import { downloadFile, getFormatFileInfo } from '../utils/download.ts';
 import { CodeEditor } from '../components/CodeEditor.tsx';
+import { DomainTagInput } from '../components/DomainTagInput.tsx';
 import {
   ShieldCheck,
   RotateCcw,
@@ -27,7 +28,6 @@ import {
   EyeOff,
   ShieldAlert,
   Info,
-  Globe,
   History,
   Download,
   Trash2,
@@ -54,6 +54,8 @@ export const SecureView: React.FC<SecureViewProps> = () => {
   const [outputCode, setOutputCode] = useState<string>('');
   const [format, setFormat] = useState<CodeFormat>('html');
   const [settings, setSettings] = useState<SecuritySettings>(DEFAULT_SETTINGS);
+  const [domainTags, setDomainTags] = useState<string[]>([]);
+  const [domainDraft, setDomainDraft] = useState<string>('');
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState<ProcessingProgress | null>(null);
@@ -101,6 +103,42 @@ export const SecureView: React.FC<SecureViewProps> = () => {
     setShowLivePreview(false);
   };
 
+  const handleTagsChange = (nextTags: string[]) => {
+    setDomainTags(nextTags);
+    setSettings((prev) => ({ ...prev, domainLock: nextTags.join(', ') }));
+  };
+
+  /**
+   * Commits any typed (un-entered) domain draft into tags before encoding or previewing
+   * so forgetting to press Enter never loses the typed domain.
+   */
+  const commitDraftAndGetSettings = (): SecuritySettings => {
+    const draftTokens = domainDraft
+      .split(/[\s,;]+/)
+      .map(sanitizeDomainToken)
+      .filter((t) => t.length > 0);
+
+    const merged = [...domainTags];
+    for (const token of draftTokens) {
+      if (!merged.includes(token)) {
+        merged.push(token);
+      }
+    }
+
+    if (merged.length !== domainTags.length || domainDraft.trim()) {
+      setDomainTags(merged);
+      setDomainDraft('');
+    }
+
+    const domainString = merged.join(', ');
+    const nextSettings: SecuritySettings = {
+      ...settings,
+      domainLock: domainString,
+    };
+    setSettings(nextSettings);
+    return nextSettings;
+  };
+
   const executeSecureCode = async () => {
     if (!sourceCode.trim()) {
       setErrorMsg(
@@ -108,6 +146,8 @@ export const SecureView: React.FC<SecureViewProps> = () => {
       );
       return;
     }
+
+    const effectiveSettings = commitDraftAndGetSettings();
 
     setErrorMsg(null);
     setXmlValidationError(null);
@@ -122,7 +162,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
 
     try {
       if (format === 'html') {
-        const res = await processHtmlDocument(sourceCode, settings, {
+        const res = await processHtmlDocument(sourceCode, effectiveSettings, {
           forPreview: false,
           onProgress: (p) => setProgress(p),
         });
@@ -149,7 +189,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
           domainLockActive: res.domainLockActive,
         });
       } else {
-        const res = await processBloggerXml(sourceCode, settings, {
+        const res = await processBloggerXml(sourceCode, effectiveSettings, {
           forPreview: false,
           onProgress: (p) => setProgress(p),
         });
@@ -196,7 +236,8 @@ export const SecureView: React.FC<SecureViewProps> = () => {
   const handleOpenLivePreview = async () => {
     if (!outputCode) return;
 
-    const hasDomainLock = settings.domainLock.trim().length > 0;
+    const effectiveSettings = commitDraftAndGetSettings();
+    const hasDomainLock = Boolean(stats?.domainLockActive || effectiveSettings.domainLock.trim().length > 0);
     if (!hasDomainLock) {
       setPreviewDoc(outputCode);
       setPreviewNotice(null);
@@ -208,12 +249,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
     try {
       const previewResult =
         format === 'html'
-          ? await processHtmlDocument(sourceCode, settings, { forPreview: true })
-          : await processBloggerXml(sourceCode, settings, { forPreview: true });
+          ? await processHtmlDocument(sourceCode, effectiveSettings, { forPreview: true })
+          : await processBloggerXml(sourceCode, effectiveSettings, { forPreview: true });
 
       setPreviewDoc(previewResult.output);
       setPreviewNotice(
-        `নিরাপদ প্রিভিউ মোড: আপনার আসল Copy/Download করা আউটপুটে Domain Lock (${settings.domainLock.trim()}) সম্পূর্ণ সক্রিয় আছে। শুধুমাত্র এই স্যান্ডবক্সে টেস্ট করার জন্য ডোমেইন লক সাময়িকভাবে বাইপাস করা হয়েছে।`
+        `নিরাপদ প্রিভিউ মোড: আপনার আসল Copy/Download করা আউটপুটে Domain Lock (${effectiveSettings.domainLock.trim()}) সম্পূর্ণ সক্রিয় আছে। শুধুমাত্র এই স্যান্ডবক্সে টেস্ট করার জন্য ডোমেইন লক সাময়িকভাবে বাইপাস করা হয়েছে।`
       );
       setShowLivePreview(true);
     } catch {
@@ -459,48 +500,14 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label
-                htmlFor="cg-domain-lock"
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300"
-              >
-                <Globe className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                <span>Domain Lock (Allowed Domains — কমা বা স্পেস দিয়ে লিখুন)</span>
-              </label>
-              <input
-                id="cg-domain-lock"
-                type="text"
-                inputMode="url"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                value={settings.domainLock}
-                onChange={(e) =>
-                  setSettings((prev) => ({ ...prev, domainLock: e.target.value }))
-                }
-                placeholder="e.g. mrs-engineersbd.blogspot.com, www.blogger.com, mdrajidul99.github.io"
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-              />
-              {(() => {
-                const parsedDomains = parseDomainList(
-                  settings.domainLock,
-                  format,
-                  settings.allowBloggerPreview
-                );
-                if (parsedDomains.length > 0) {
-                  return (
-                    <div className="text-[11px] text-cyan-700 dark:text-cyan-300 font-mono leading-relaxed break-all">
-                      Active Lock ({parsedDomains.length}): {parsedDomains.join(', ')}
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                কমা (<code className="font-mono">,</code>) বা স্পেস দিয়ে একাধিক ডোমেইন লিখুন (Enter চাপার প্রয়োজন নেই)। অন্য ডোমেইন বা localhost-এ কোড চালালে পেজ খালি (<code className="font-mono">about:blank</code>) হয়ে যাবে।
-              </p>
-            </div>
+            <DomainTagInput
+              id="cg-domain-lock"
+              tags={domainTags}
+              draft={domainDraft}
+              onChangeTags={handleTagsChange}
+              onChangeDraft={setDomainDraft}
+              autoIncludeBloggerPreview={format === 'blogger' && settings.allowBloggerPreview}
+            />
           </div>
 
           {/* Right: Protection Toggles */}

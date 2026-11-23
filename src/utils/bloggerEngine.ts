@@ -7,6 +7,7 @@ import {
   parseDomainList,
   sanitizeObfuscatedTagBoundaries,
   splitModuleImports,
+  wrapModuleBodyForObfuscation,
 } from './jsHelpers.ts';
 import { obfuscateInWorker } from './workerClient.ts';
 
@@ -19,10 +20,19 @@ export interface BloggerProcessResult {
   xmlValidationError: string | null;
 }
 
+interface UiMountEntry {
+  id: string;
+  html: string;
+}
+
 const VOID_HTML_TAGS = new Set([
   'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
   'link', 'meta', 'param', 'source', 'track', 'wbr',
 ]);
+
+const CONTAINER_UI_TAGS = new Set(['header', 'footer', 'nav', 'aside', 'section', 'main', 'div']);
+const BLOGGER_STRUCTURAL_CONTAINERS = new Set(['b:section', 'b:widget', 'b:includable', 'b:if', 'b:else']);
+const VERBATIM_SKIP_TAGS = new Set(['script', 'style', 'b:loop', 'b:skin', 'b:template-skin', 'svg', 'pre', 'code', 'textarea']);
 
 /**
  * Validates XML structure using the browser's DOMParser.
@@ -61,143 +71,339 @@ function isProtectedAnalyticsOrAdSense(attrs: string, content: string): boolean 
 }
 
 /**
- * Finds and replaces ONLY top-level static HTML container blocks inside <body>
- * that contain ZERO Blogger tags (<b:...>, </b:...>, <data:...>, expr:) and ZERO <script>/<style> tags.
- * Uses a strict balanced tag scanner so XML nesting (e.g. <b:includable>) is never broken.
+ * Finds the end index (after closing `>`) of an XML/HTML opening tag starting at `startIdx`,
+ * safely skipping quoted attribute values (`'...'` and `"..."`).
  */
-async function hidePureStaticBodyBlocks(
-  bodyInner: string,
-  obfuscateFn: (code: string) => Promise<string>
-): Promise<{ result: string; hiddenCount: number; scriptsAdded: number }> {
-  const targetTags = new Set(['header', 'footer', 'nav', 'aside', 'div', 'section']);
-  let hiddenCount = 0;
-  let scriptsAdded = 0;
-  let mountCounter = 1;
+function findTagEnd(source: string, startIdx: number): { endIdx: number; isSelfClosing: boolean } | null {
+  let i = startIdx + 1;
+  const len = source.length;
+  let quote: '"' | "'" | null = null;
 
-  // Scan from left to right at top-level of bodyInner
+  while (i < len) {
+    const ch = source[i];
+    if (quote) {
+      if (ch === quote) quote = null;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      i++;
+      continue;
+    }
+    if (ch === '>') {
+      // Check if preceded by '/' ignoring whitespace
+      let j = i - 1;
+      while (j > startIdx && /\s/.test(source[j])) j--;
+      return { endIdx: i + 1, isSelfClosing: source[j] === '/' };
+    }
+    i++;
+  }
+  return null;
+}
+
+/**
+ * Finds the matching closing `</tagName>` starting right after an opening tag,
+ * tracking nested `<tagName>` / `</tagName>` safely while respecting quotes and comments.
+ */
+function findMatchingCloseTag(
+  source: string,
+  afterOpenIdx: number,
+  tagName: string
+): { innerEndIdx: number; afterCloseIdx: number } | null {
+  const lowerTag = tagName.toLowerCase();
+  let depth = 1;
+  let pos = afterOpenIdx;
+  const len = source.length;
+
+  while (pos < len && depth > 0) {
+    const lt = source.indexOf('<', pos);
+    if (lt === -1) return null;
+
+    if (source.startsWith('<!--', lt)) {
+      const cEnd = source.indexOf('-->', lt + 4);
+      pos = cEnd === -1 ? len : cEnd + 3;
+      continue;
+    }
+    if (source.startsWith('<![CDATA[', lt)) {
+      const cdEnd = source.indexOf(']]>', lt + 9);
+      pos = cdEnd === -1 ? len : cdEnd + 3;
+      continue;
+    }
+
+    // Check closing tag
+    if (source[lt + 1] === '/') {
+      const closeMatch = /^<\/([a-zA-Z][a-zA-Z0-9:-]*)\s*>/.exec(source.slice(lt));
+      if (closeMatch) {
+        if (closeMatch[1].toLowerCase() === lowerTag) {
+          depth--;
+          if (depth === 0) {
+            return {
+              innerEndIdx: lt,
+              afterCloseIdx: lt + closeMatch[0].length,
+            };
+          }
+        }
+        pos = lt + closeMatch[0].length;
+        continue;
+      }
+      pos = lt + 2;
+      continue;
+    }
+
+    // Check opening tag
+    const nameMatch = /^<([a-zA-Z][a-zA-Z0-9:-]*)(?=[\s/>])/.exec(source.slice(lt));
+    if (nameMatch) {
+      const tagEnd = findTagEnd(source, lt);
+      if (!tagEnd) return null;
+      const foundName = nameMatch[1].toLowerCase();
+      if (foundName === lowerTag && !tagEnd.isSelfClosing && !VOID_HTML_TAGS.has(foundName)) {
+        depth++;
+      }
+      pos = tagEnd.endIdx;
+      continue;
+    }
+
+    pos = lt + 1;
+  }
+
+  return null;
+}
+
+/**
+ * Picks or injects an ID onto an opening HTML tag without altering its tag name,
+ * CSS classes, or flex-child structural position (preserves header/footer flex layouts).
+ */
+function ensureMountIdOnOpenTag(
+  openTag: string,
+  tagName: string,
+  inHomepageOrWidget: boolean,
+  usedIds: Set<string>,
+  counters: { home: number; ui: number }
+): { updatedOpenTag: string; mountId: string } {
+  const existingIdMatch = /\bid\s*=\s*(?:"([^"]+)"|'([^']+)')/i.exec(openTag);
+  if (existingIdMatch) {
+    const existingId = (existingIdMatch[1] || existingIdMatch[2] || '').trim();
+    if (existingId && !usedIds.has(existingId)) {
+      usedIds.add(existingId);
+      return { updatedOpenTag: openTag, mountId: existingId };
+    }
+  }
+
+  let candidate = '';
+  if (tagName === 'header' && !usedIds.has('cg-header-mount')) {
+    candidate = 'cg-header-mount';
+  } else if (tagName === 'footer' && !usedIds.has('cg-footer-mount')) {
+    candidate = 'cg-footer-mount';
+  } else if (inHomepageOrWidget) {
+    if (!usedIds.has('cg-home-mount')) {
+      candidate = 'cg-home-mount';
+    } else {
+      do {
+        counters.home++;
+        candidate = `cg-home-mount-${counters.home}`;
+      } while (usedIds.has(candidate));
+    }
+  } else {
+    do {
+      counters.ui++;
+      candidate = `cg-ui-mount-${counters.ui}`;
+    } while (usedIds.has(candidate));
+  }
+
+  usedIds.add(candidate);
+
+  // Replace existing duplicate id if present, otherwise insert id='...' cleanly
+  if (existingIdMatch) {
+    const updated = openTag.replace(
+      /\bid\s*=\s*(?:"[^"]*"|'[^']*')/i,
+      `id='${candidate}'`
+    );
+    return { updatedOpenTag: updated, mountId: candidate };
+  }
+
+  const updated = openTag.replace(/>$/, ` id='${candidate}'>`);
+  return { updatedOpenTag: updated, mountId: candidate };
+}
+
+/**
+ * Recursively collects pure static HTML blocks (in top-level body, drawers/modals,
+ * and inside <b:widget> / <b:includable> / <b:if> blocks that lack <data:...>, <b:loop>,
+ * <b:include>, or expr:), preserving original outer tags (e.g. <header>, <footer>, <section>)
+ * and returning all mounts to be bundled into ONE combined JS script.
+ */
+function collectAndStripStaticUiBlocks(
+  fragment: string,
+  mounts: UiMountEntry[],
+  usedIds: Set<string>,
+  counters: { home: number; ui: number },
+  inHomepageOrWidget: boolean
+): string {
   let output = '';
   let pos = 0;
-  const len = bodyInner.length;
+  const len = fragment.length;
 
   while (pos < len) {
-    const nextLt = bodyInner.indexOf('<', pos);
-    if (nextLt === -1) {
-      output += bodyInner.slice(pos);
+    const lt = fragment.indexOf('<', pos);
+    if (lt === -1) {
+      output += fragment.slice(pos);
       break;
     }
 
-    output += bodyInner.slice(pos, nextLt);
+    output += fragment.slice(pos, lt);
 
-    // Check if this is an XML/HTML comment
-    if (bodyInner.startsWith('<!--', nextLt)) {
-      const commentEnd = bodyInner.indexOf('-->', nextLt + 4);
-      const end = commentEnd === -1 ? len : commentEnd + 3;
-      output += bodyInner.slice(nextLt, end);
+    // Comments & CDATA pass through verbatim
+    if (fragment.startsWith('<!--', lt)) {
+      const cEnd = fragment.indexOf('-->', lt + 4);
+      const end = cEnd === -1 ? len : cEnd + 3;
+      output += fragment.slice(lt, end);
+      pos = end;
+      continue;
+    }
+    if (fragment.startsWith('<![CDATA[', lt)) {
+      const cdEnd = fragment.indexOf(']]>', lt + 9);
+      const end = cdEnd === -1 ? len : cdEnd + 3;
+      output += fragment.slice(lt, end);
       pos = end;
       continue;
     }
 
-    // Read opening tag
-    const tagMatch = /^<([a-zA-Z][a-zA-Z0-9:-]*)(\s[^>]*)?(\/?)>/.exec(bodyInner.slice(nextLt));
-    if (!tagMatch) {
+    const nameMatch = /^<([a-zA-Z][a-zA-Z0-9:-]*)(?=[\s/>])/.exec(fragment.slice(lt));
+    if (!nameMatch) {
       output += '<';
-      pos = nextLt + 1;
+      pos = lt + 1;
       continue;
     }
 
-    const fullOpenTag = tagMatch[0];
-    const tagName = tagMatch[1].toLowerCase();
-    const isSelfClosing = tagMatch[3] === '/' || VOID_HTML_TAGS.has(tagName);
-
-    // If it's a Blogger tag (<b:section>, <b:widget>, etc.) or <script> or <style>, skip to its matching closing tag verbatim!
-    if (tagName.startsWith('b:') || tagName === 'script' || tagName === 'style' || targetTags.has(tagName)) {
-      if (isSelfClosing) {
-        output += fullOpenTag;
-        pos = nextLt + fullOpenTag.length;
-        continue;
-      }
-
-      // Find balanced closing </tagName>
-      let depth = 1;
-      let scan = nextLt + fullOpenTag.length;
-      const openRegex = new RegExp(`<${tagName.replace(':', '\\:')}(?:\\s[^>]*)?(/?)>`, 'gi');
-      const closeRegex = new RegExp(`<\\/${tagName.replace(':', '\\:')}\\s*>`, 'gi');
-
-      while (depth > 0 && scan < len) {
-        openRegex.lastIndex = scan;
-        closeRegex.lastIndex = scan;
-        const nextOpen = openRegex.exec(bodyInner);
-        const nextClose = closeRegex.exec(bodyInner);
-
-        if (!nextClose) {
-          // Unbalanced fallback — abort replacement for this tag
-          scan = len;
-          break;
-        }
-
-        if (nextOpen && nextOpen.index < nextClose.index) {
-          const selfCloseNested = nextOpen[1] === '/' || VOID_HTML_TAGS.has(tagName);
-          if (!selfCloseNested) depth++;
-          scan = nextOpen.index + nextOpen[0].length;
-        } else {
-          depth--;
-          scan = nextClose.index + nextClose[0].length;
-        }
-      }
-
-      if (depth !== 0) {
-        // Could not balance cleanly — keep original character by character
-        output += fullOpenTag;
-        pos = nextLt + fullOpenTag.length;
-        continue;
-      }
-
-      const fullBlock = bodyInner.slice(nextLt, scan);
-
-      // Only hide if:
-      // 1. It is one of our pure HTML block tags (NOT b:*, script, style)
-      // 2. Contains ZERO Blogger tags/directives (<b:, </b:, <data:, expr:)
-      // 3. Contains ZERO <script or <style tags
-      // 4. Meaningful size (>= 40 chars)
-      const hasBloggerDirective = /<b:|<\/b:|<data:|<expr:|\bexpr:/i.test(fullBlock);
-      const hasEmbeddedScriptOrStyle = /<script\b|<style\b/i.test(fullBlock);
-
-      if (
-        targetTags.has(tagName) &&
-        !hasBloggerDirective &&
-        !hasEmbeddedScriptOrStyle &&
-        fullBlock.trim().length >= 40
-      ) {
-        const mountId = `cg-xml-mount-${mountCounter++}`;
-        const cleanBlock = fullBlock.replace(/\s+/g, ' ').trim();
-        const mountCode = `(function(){var m=document.getElementById('${mountId}');if(m){m.innerHTML=${JSON.stringify(cleanBlock)};}})();`;
-        const obfMount = sanitizeObfuscatedTagBoundaries(await obfuscateFn(mountCode));
-        output += `<div id='${mountId}'></div>\n<script type='text/javascript'>\n//<![CDATA[\n${obfMount}\n//]]>\n</script>`;
-        hiddenCount++;
-        scriptsAdded++;
-      } else {
-        output += fullBlock;
-      }
-
-      pos = scan;
+    const tagEnd = findTagEnd(fragment, lt);
+    if (!tagEnd) {
+      output += '<';
+      pos = lt + 1;
       continue;
     }
 
-    output += fullOpenTag;
-    pos = nextLt + fullOpenTag.length;
+    const openTag = fragment.slice(lt, tagEnd.endIdx);
+    const tagName = nameMatch[1].toLowerCase();
+    const isSelfClosing = tagEnd.isSelfClosing || VOID_HTML_TAGS.has(tagName);
+
+    if (isSelfClosing) {
+      output += openTag;
+      pos = tagEnd.endIdx;
+      continue;
+    }
+
+    const isTargetUiContainer = CONTAINER_UI_TAGS.has(tagName);
+    const isBloggerStructural = BLOGGER_STRUCTURAL_CONTAINERS.has(tagName);
+    const isVerbatimSkip = VERBATIM_SKIP_TAGS.has(tagName);
+
+    if (!isTargetUiContainer && !isBloggerStructural && !isVerbatimSkip) {
+      output += openTag;
+      pos = tagEnd.endIdx;
+      continue;
+    }
+
+    const closeInfo = findMatchingCloseTag(fragment, tagEnd.endIdx, tagName);
+    if (!closeInfo) {
+      output += openTag;
+      pos = tagEnd.endIdx;
+      continue;
+    }
+
+    const innerContent = fragment.slice(tagEnd.endIdx, closeInfo.innerEndIdx);
+    const closeTag = fragment.slice(closeInfo.innerEndIdx, closeInfo.afterCloseIdx);
+
+    if (isVerbatimSkip) {
+      output += openTag + innerContent + closeTag;
+      pos = closeInfo.afterCloseIdx;
+      continue;
+    }
+
+    if (isBloggerStructural) {
+      const nextContext =
+        inHomepageOrWidget || tagName === 'b:widget' || tagName === 'b:includable' || tagName === 'b:if';
+
+      // Check if <b:if> wraps pure static HTML directly without outer container tags
+      let processedInner = collectAndStripStaticUiBlocks(
+        innerContent,
+        mounts,
+        usedIds,
+        counters,
+        nextContext
+      );
+
+      if (tagName === 'b:if') {
+        const hasBloggerInside = /<b:|<\/b:|<data:|<expr:|\bexpr:/i.test(processedInner);
+        const hasScriptOrStyle = /<script\b|<style\b|__CG_XML_SCRIPT_/i.test(processedInner);
+        const alreadyMountedOnly = /^(\s*<[a-zA-Z0-9:-]+[^>]*id=['"]cg-[^'"]+['"][^>]*>\s*<\/[a-zA-Z0-9:-]+>\s*)+$/.test(processedInner);
+
+        if (!hasBloggerInside && !hasScriptOrStyle && !alreadyMountedOnly && processedInner.trim().length >= 35) {
+          let homeId = 'cg-home-mount';
+          if (usedIds.has(homeId)) {
+            do {
+              counters.home++;
+              homeId = `cg-home-mount-${counters.home}`;
+            } while (usedIds.has(homeId));
+          }
+          usedIds.add(homeId);
+          mounts.push({
+            id: homeId,
+            html: processedInner.replace(/\s+/g, ' ').trim(),
+          });
+          processedInner = `<div id='${homeId}'></div>`;
+        }
+      }
+
+      output += `${openTag}${processedInner}${closeTag}`;
+      pos = closeInfo.afterCloseIdx;
+      continue;
+    }
+
+    // Target UI Container (<header>, <footer>, <nav>, <aside>, <section>, <main>, <div>)
+    const fullBlock = openTag + innerContent + closeTag;
+    const hasBloggerDirective = /<b:|<\/b:|<data:|<expr:|\bexpr:/i.test(fullBlock);
+    const hasEmbeddedScriptOrStyle = /<script\b|<style\b|__CG_XML_SCRIPT_/i.test(fullBlock);
+
+    if (!hasBloggerDirective && !hasEmbeddedScriptOrStyle && innerContent.trim().length >= 30) {
+      // Pure static UI block — keep the exact outer tag (<header>, <footer>, <section>, etc.) so CSS/flex layouts never break!
+      const { updatedOpenTag, mountId } = ensureMountIdOnOpenTag(
+        openTag,
+        tagName,
+        inHomepageOrWidget,
+        usedIds,
+        counters
+      );
+      mounts.push({
+        id: mountId,
+        html: innerContent.replace(/\s+/g, ' ').trim(),
+      });
+      output += `${updatedOpenTag}${closeTag}`;
+    } else {
+      // Container wraps Blogger tags or scripts — keep wrapper and recurse into inner HTML cleanly
+      const processedInner = collectAndStripStaticUiBlocks(
+        innerContent,
+        mounts,
+        usedIds,
+        counters,
+        inHomepageOrWidget
+      );
+      output += `${openTag}${processedInner}${closeTag}`;
+    }
+
+    pos = closeInfo.afterCloseIdx;
   }
 
-  return { result: output, hiddenCount, scriptsAdded };
+  return output;
 }
 
 /**
  * Mode 2: Blogger XML (Theme & Widget Code) processing pipeline.
- * - Preserves all <?xml?>, <!DOCTYPE>, namespaces, <b:include/>, <b:template-skin>,
- *   <b:section>, <b:widget>, <b:includable>, <b:if>, <b:loop>, <data:...>, expr:, AdSense/Analytics.
- * - Handles <b:skin> safely (hides pure CSS in obfuscated JS injector, or preserves <Variable>/<Group>/<b:if>).
- * - Wraps every obfuscated script inside <script type='text/javascript'>\n//<![CDATA[\n...\n//]]>\n</script>.
- * - Ensures obfuscated JS never contains raw `]]>`.
- * - Runs DOMParser XML validation on final output.
+ * Produces clean, lightweight, fast-loading Blogger XML with at most ~4 scripts:
+ *   1) <head>: Combined CSS injector + optional Domain Lock guard
+ *   2) <body>: ONE single combined UI mount script (preserving <header>, <footer>, <section> outer tags & flex layout,
+ *      and hiding pure static <b:if>/<b:widget> homepage sections while keeping SEO <b:loop>/<data:post.*> intact)
+ *   3) <script type='module'>: Top-level imports preserved + body wrapped in (async function(){...})(); for full obfuscation
+ *   4) Before </body>: Anti-Inspect & Anti-Copy script
+ * All scripts wrapped in //<![CDATA[ ... //]]> with zero stray `]]>` and validated via DOMParser.
  */
 export async function processBloggerXml(
   xmlCode: string,
@@ -226,18 +432,13 @@ export async function processBloggerXml(
 
   const obfuscateSafe = (code: string) => obfuscateInWorker(code, obfOptions);
 
-  // --- STEP 1: Domain Lock Guard (in <head>) ---
-  let domainGuardXml = '';
-  if (domainLockActive) {
-    onProgress?.({ stage: 'ডোমেইন লক সুরক্ষা তৈরি হচ্ছে...', percent: 10 });
-    const guardObf = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(buildDomainLockGuardScript(domains)));
-    domainGuardXml = `<script type='text/javascript'>\n//<![CDATA[\n${guardObf}\n//]]>\n</script>`;
-    scriptsObfuscated++;
-  }
+  // --- STEP 1: Combine Domain Lock Guard + <b:skin> / <style> CSS Injector into ONE <head> script ---
+  onProgress?.({ stage: 'CSS ও ডোমেইন লক প্রস্তুত হচ্ছে...', percent: 18 });
+  const headJsParts: string[] = [];
 
-  // --- STEP 2: <b:skin> CSS Processing ---
-  onProgress?.({ stage: 'CSS এনকোড হচ্ছে...', percent: 25 });
-  let skinCssInjectorXml = '';
+  if (domainLockActive) {
+    headJsParts.push(buildDomainLockGuardScript(domains));
+  }
 
   const skinRegex = /(<b:skin\b[^>]*>\s*<!\[CDATA\[)([\s\S]*?)(\]\]>\s*<\/b:skin>)/gi;
   const skinMatches: Array<{ match: string; open: string; inner: string; close: string }> = [];
@@ -246,21 +447,18 @@ export async function processBloggerXml(
     skinMatches.push({ match: sm[0], open: sm[1], inner: sm[2], close: sm[3] });
   }
 
+  const allHiddenCssChunks: string[] = [];
   for (const item of skinMatches) {
     const hasBloggerVarsOrIf = /<Variable\b|<Group\b|<b:/i.test(item.inner);
     if (hasBloggerVarsOrIf) {
-      // Preserve Blogger variables, groups, and conditionals safely
       const safeMinified = minifyBloggerSkinWithDirectives(item.inner);
       working = working.replace(item.match, () => `${item.open}\n${safeMinified}\n${item.close}`);
     } else if (settings.hideCssAndHtmlInJs) {
       const minified = minifyCss(item.inner);
       if (minified) {
-        const cssJs = `(function(){var s=document.createElement('style');s.textContent=${JSON.stringify(minified)};(document.head||document.documentElement).appendChild(s);})();`;
-        const obfCss = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(cssJs));
-        skinCssInjectorXml += `\n<script type='text/javascript'>\n//<![CDATA[\n${obfCss}\n//]]>\n</script>`;
+        allHiddenCssChunks.push(minified);
         working = working.replace(item.match, () => `${item.open}/*Secured by CodeGuard*/${item.close}`);
         cssHidden = true;
-        scriptsObfuscated++;
       }
     } else {
       const minified = minifyCss(item.inner);
@@ -268,28 +466,16 @@ export async function processBloggerXml(
     }
   }
 
-  // Also handle standalone <style> blocks in <head> (only if no Blogger tags inside)
-  let standaloneCssInjectorXml = '';
   if (settings.hideCssAndHtmlInJs) {
     const headMatch = /(<head\b[^>]*>)([\s\S]*?)(<\/head>)/i.exec(working);
     if (headMatch) {
-      const collectedHeadStyles: string[] = [];
-      let headInner = headMatch[2].replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (full, _o, cssInner) => {
+      const headInner = headMatch[2].replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (full, _o, cssInner) => {
         if (/<b:|<\/b:|<data:|<expr:/i.test(cssInner)) return full;
         const min = minifyCss(cssInner);
-        if (min) collectedHeadStyles.push(min);
+        if (min) allHiddenCssChunks.push(min);
+        cssHidden = true;
         return '';
       });
-
-      if (collectedHeadStyles.length > 0) {
-        const merged = collectedHeadStyles.join('\n');
-        const cssJs = `(function(){var s=document.createElement('style');s.textContent=${JSON.stringify(merged)};(document.head||document.documentElement).appendChild(s);})();`;
-        const obfCss = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(cssJs));
-        standaloneCssInjectorXml = `\n<script type='text/javascript'>\n//<![CDATA[\n${obfCss}\n//]]>\n</script>`;
-        cssHidden = true;
-        scriptsObfuscated++;
-      }
-
       working =
         working.slice(0, headMatch.index) +
         `${headMatch[1]}${headInner}${headMatch[3]}` +
@@ -297,29 +483,45 @@ export async function processBloggerXml(
     }
   }
 
-  // --- STEP 3: Obfuscate Custom <script> & <script type='module'> tags ---
-  onProgress?.({ stage: 'Scripts এনকোড হচ্ছে...', percent: 50 });
+  if (allHiddenCssChunks.length > 0) {
+    const mergedCss = allHiddenCssChunks.join('\n');
+    headJsParts.push(
+      `(function(){var s=document.createElement('style');s.textContent=${JSON.stringify(mergedCss)};(document.head||document.documentElement).appendChild(s);})();`
+    );
+  }
 
-  const scriptSlots: Array<{ token: string; replacement: string }> = [];
+  let headCombinedScriptXml = '';
+  if (headJsParts.length > 0) {
+    onProgress?.({ stage: 'CSS এনকোড হচ্ছে...', percent: 28 });
+    const obfHead = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(headJsParts.join('\n')));
+    headCombinedScriptXml = `<script type='text/javascript'>\n//<![CDATA[\n${obfHead}\n//]]>\n</script>`;
+    scriptsObfuscated++;
+  }
+
+  // --- STEP 2: Tokenize Custom <script> & <script type='module'> tags BEFORE scanning HTML ---
+  onProgress?.({ stage: 'Scripts এনকোড হচ্ছে...', percent: 48 });
+
+  const scriptSlots: Array<{ token: string; replacement: string; isModule: boolean }> = [];
   let scriptIndex = 0;
 
-  // Tokenize matching scripts first so async Worker calls happen cleanly
-  const scriptCandidates: Array<{ token: string; openTag: string; attrs: string; content: string; closeTag: string; rawMatch: string }> = [];
+  const scriptCandidates: Array<{
+    token: string;
+    openTag: string;
+    attrs: string;
+    content: string;
+    closeTag: string;
+    rawMatch: string;
+  }> = [];
 
   working = working.replace(/(<script\b([^>]*)>)([\s\S]*?)(<\/script>)/gi, (rawMatch, openTag, attrs, content, closeTag) => {
-    // 1. Skip external scripts (src=)
     if (/\bsrc\s*=/i.test(attrs)) return rawMatch;
-    // 2. Skip self-closing scripts
     if (openTag.trim().endsWith('/>')) return rawMatch;
-    // 3. Skip JSON-LD, templates, importmaps
-    if (/\btype\s*=\s*["']?(?:application\/(?:ld\+)?json|text\/template|text\/x-template|importmap)["']?/i.test(attrs)) return rawMatch;
-    // 4. Skip AdSense / Analytics scripts
+    if (/\btype\s*=\s*["']?(?:application\/(?:ld\+)?json|text\/template|text\/x-template|importmap)["']?/i.test(attrs)) {
+      return rawMatch;
+    }
     if (isProtectedAnalyticsOrAdSense(attrs, content)) return rawMatch;
-    // 5. Skip nested <script> tags (safety against self-closing mismatch)
     if (/<script\b/i.test(content)) return rawMatch;
-    // 6. Skip scripts containing Blogger server tags (<b:, </b:, <data:, <expr:)
     if (/<b:|<\/b:|<data:|<expr:/i.test(content)) return rawMatch;
-    // 7. Skip empty scripts
     if (!content.trim()) return rawMatch;
 
     const token = `__CG_XML_SCRIPT_${scriptIndex++}__`;
@@ -328,7 +530,6 @@ export async function processBloggerXml(
   });
 
   for (const cand of scriptCandidates) {
-    // Strip existing CDATA markers
     let rawJs = cand.content.trim();
     rawJs = rawJs
       .replace(/\/\/<!\[CDATA\[/gi, '')
@@ -338,7 +539,7 @@ export async function processBloggerXml(
       .trim();
 
     if (!rawJs) {
-      scriptSlots.push({ token: cand.token, replacement: cand.rawMatch });
+      scriptSlots.push({ token: cand.token, replacement: cand.rawMatch, isModule: false });
       continue;
     }
 
@@ -347,15 +548,18 @@ export async function processBloggerXml(
     if (isModule) {
       const { imports, body } = splitModuleImports(rawJs);
       if (!body.trim()) {
-        scriptSlots.push({ token: cand.token, replacement: cand.rawMatch });
+        scriptSlots.push({ token: cand.token, replacement: cand.rawMatch, isModule: true });
         continue;
       }
-      const obfBody = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(body));
+      // Wrap post-import module body in async IIFE so firebaseConfig, ADMIN_EMAIL, and local functions are obfuscated
+      const wrappedBody = wrapModuleBodyForObfuscation(body);
+      const obfBody = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(wrappedBody));
       scriptsObfuscated++;
       const combined = imports ? `${imports}\n${obfBody}` : obfBody;
       scriptSlots.push({
         token: cand.token,
         replacement: `<script type='module'>\n//<![CDATA[\n${combined}\n//]]>\n</script>`,
+        isModule: true,
       });
     } else {
       const obfJs = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(rawJs));
@@ -363,27 +567,70 @@ export async function processBloggerXml(
       scriptSlots.push({
         token: cand.token,
         replacement: `<script type='text/javascript'>\n//<![CDATA[\n${obfJs}\n//]]>\n</script>`,
+        isModule: false,
       });
     }
   }
 
-  // --- STEP 4: Hide Pure Static HTML Blocks inside <body> (preserving ALL Blogger tags) ---
+  // --- STEP 3: Hide Static HTML Blocks (Header, Footer, Modals, Static Homepage Sections) -> ONE combined UI Mount script ---
+  let combinedUiMountXml = '';
   if (settings.hideCssAndHtmlInJs) {
     const bodyMatch = /(<body\b[^>]*>)([\s\S]*?)(<\/body>)/i.exec(working);
     if (bodyMatch) {
-      onProgress?.({ stage: 'HTML এনকোড হচ্ছে...', percent: 72 });
-      const { result: protectedBody, hiddenCount, scriptsAdded } = await hidePureStaticBodyBlocks(
+      onProgress?.({ stage: 'HTML এনকোড হচ্ছে (১টি সম্মিলিত স্ক্রিপ্ট)...', percent: 70 });
+      const mounts: UiMountEntry[] = [];
+      const usedIds = new Set<string>();
+      const counters = { home: 0, ui: 0 };
+
+      const strippedBody = collectAndStripStaticUiBlocks(
         bodyMatch[2],
-        obfuscateSafe
+        mounts,
+        usedIds,
+        counters,
+        false
       );
-      if (hiddenCount > 0) {
+
+      if (mounts.length > 0) {
         htmlHidden = true;
-        scriptsObfuscated += scriptsAdded;
+        const pairsJson = JSON.stringify(mounts.map((m) => [m.id, m.html]));
+        const mountRunnerJs = `(function(){
+  var _m = ${pairsJson};
+  function _apply() {
+    for (var i = 0; i < _m.length; i++) {
+      var el = document.getElementById(_m[i][0]);
+      if (el && !el.dataset.cgMounted) {
+        el.innerHTML = _m[i][1];
+        el.dataset.cgMounted = '1';
       }
+    }
+  }
+  _apply();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _apply);
+  }
+})();`;
+        const obfMount = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(mountRunnerJs));
+        combinedUiMountXml = `<script type='text/javascript'>\n//<![CDATA[\n${obfMount}\n//]]>\n</script>`;
+        scriptsObfuscated++;
+      }
+
       working =
         working.slice(0, bodyMatch.index) +
-        `${bodyMatch[1]}${protectedBody}${bodyMatch[3]}` +
+        `${bodyMatch[1]}${strippedBody}${bodyMatch[3]}` +
         working.slice(bodyMatch.index + bodyMatch[0].length);
+    }
+  }
+
+  // Place combined UI mount script right BEFORE the first <script type='module'> token (or before </body>)
+  // so every mount target in DOM above module script is hydrated before module script runs!
+  if (combinedUiMountXml) {
+    const firstModuleSlot = scriptSlots.find((s) => s.isModule && working.includes(s.token));
+    if (firstModuleSlot) {
+      working = working.replace(firstModuleSlot.token, () => `${combinedUiMountXml}\n${firstModuleSlot.token}`);
+    } else if (/<\/body>/i.test(working)) {
+      working = working.replace(/<\/body>/i, () => `${combinedUiMountXml}\n</body>`);
+    } else {
+      working = `${working}\n${combinedUiMountXml}`;
     }
   }
 
@@ -392,17 +639,16 @@ export async function processBloggerXml(
     working = working.replace(slot.token, () => slot.replacement);
   }
 
-  // Inject <head> scripts (Domain Lock + CSS Injector) before </head>
-  const headInjectors = [domainGuardXml, skinCssInjectorXml, standaloneCssInjectorXml].filter(Boolean).join('\n');
-  if (headInjectors) {
+  // Inject single combined <head> script (Domain Lock + CSS injector) before </head>
+  if (headCombinedScriptXml) {
     if (/<\/head>/i.test(working)) {
-      working = working.replace(/<\/head>/i, () => `${headInjectors}\n</head>`);
+      working = working.replace(/<\/head>/i, () => `${headCombinedScriptXml}\n</head>`);
     } else {
-      working = `${headInjectors}\n${working}`;
+      working = `${headCombinedScriptXml}\n${working}`;
     }
   }
 
-  // --- STEP 5: Anti-Inspect & Anti-Copy Guard before </body> ---
+  // --- STEP 4: Anti-Inspect & Anti-Copy Guard before </body> ---
   if (settings.antiInspectAndCopy) {
     onProgress?.({ stage: 'Anti-Inspect ও Anti-Copy সুরক্ষা তৈরি হচ্ছে...', percent: 88 });
     const antiObf = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(buildAntiInspectScript()));
@@ -416,7 +662,7 @@ export async function processBloggerXml(
     }
   }
 
-  // --- STEP 6: Mandatory XML Validation via DOMParser ---
+  // --- STEP 5: Mandatory XML Validation via DOMParser ---
   onProgress?.({ stage: 'XML ভ্যালিডেশন চেক হচ্ছে...', percent: 96 });
   const finalOutput = working.trim();
   const xmlValidationError = validateBloggerXml(finalOutput);

@@ -7,6 +7,7 @@ import {
   parseDomainList,
   sanitizeObfuscatedTagBoundaries,
   splitModuleImports,
+  wrapModuleBodyForObfuscation,
 } from './jsHelpers.ts';
 import { obfuscateInWorker } from './workerClient.ts';
 
@@ -47,10 +48,10 @@ function classifyScript(fullMatch: string, attrs: string, content: string, isSel
  * Mode 1: Single HTML (Website & App Code) processing pipeline.
  * - Never uses document.write().
  * - Preserves <meta>, <title>, <link>, external <script src="...">, JSON-LD.
- * - Minifies & hides CSS inside an obfuscated JS style injector in <head>.
+ * - Minifies & hides CSS inside an obfuscated JS style injector in <head> (combined with Domain Lock guard).
  * - Replaces static <body> markup with <div id="cg-app-mount"></div> + obfuscated JS mount.
- * - Preserves <script type="module"> top-level imports (including multi-line) and
- *   obfuscates only the module body without IIFE wrapping.
+ * - Preserves <script type="module"> top-level imports (including multi-line) and wraps the body in
+ *   (async function(){ ... })(); before obfuscation so top-level variables/functions are fully mangled.
  * - Appends obfuscated Anti-Inspect & Anti-Copy protection before </body>.
  */
 export async function processHtmlDocument(
@@ -84,17 +85,13 @@ export async function processHtmlDocument(
   const hasHeadTag = /<head\b[^>]*>[\s\S]*?<\/head>/i.test(working);
   const hasBodyTag = /<body\b[^>]*>([\s\S]*?)<\/body>/i.test(working);
 
-  // --- STEP 1: Domain Lock Hostname Guard (if active) ---
-  let domainGuardTag = '';
+  // --- STEP 1 & 2: Domain Lock Guard + Hide CSS (<style> blocks) in one combined <head> script ---
+  const headScriptParts: string[] = [];
   if (domainLockActive) {
-    onProgress?.({ stage: 'ডোমেইন লক সুরক্ষা তৈরি হচ্ছে...', percent: 10 });
-    const guardRaw = buildDomainLockGuardScript(domains);
-    const guardObf = sanitizeObfuscatedTagBoundaries(await obfuscateInWorker(guardRaw, obfOptions));
-    domainGuardTag = `<script>${guardObf}</script>`;
-    scriptsObfuscated++;
+    onProgress?.({ stage: 'ডোমেইন লক সুরক্ষা তৈরি হচ্ছে...', percent: 12 });
+    headScriptParts.push(buildDomainLockGuardScript(domains));
   }
 
-  // --- STEP 2: Process & Hide CSS (<style> blocks) ---
   const collectedCssParts: string[] = [];
   if (settings.hideCssAndHtmlInJs) {
     onProgress?.({ stage: 'CSS এনকোড হচ্ছে...', percent: 25 });
@@ -111,17 +108,23 @@ export async function processHtmlDocument(
     });
   }
 
-  let cssInjectorTag = '';
   if (settings.hideCssAndHtmlInJs && collectedCssParts.length > 0) {
     const mergedCss = collectedCssParts.join('\n');
     const cssScript = `(function(){var s=document.createElement('style');s.textContent=${JSON.stringify(mergedCss)};(document.head||document.documentElement).appendChild(s);})();`;
-    const obfCssJs = sanitizeObfuscatedTagBoundaries(await obfuscateInWorker(cssScript, obfOptions));
-    cssInjectorTag = `<script>${obfCssJs}</script>`;
+    headScriptParts.push(cssScript);
     cssHidden = true;
+  }
+
+  let headCombinedTag = '';
+  if (headScriptParts.length > 0) {
+    const obfHeadJs = sanitizeObfuscatedTagBoundaries(
+      await obfuscateInWorker(headScriptParts.join('\n'), obfOptions)
+    );
+    headCombinedTag = `<script>${obfHeadJs}</script>`;
     scriptsObfuscated++;
   }
 
-  // Helper to obfuscate a list of extracted scripts cleanly
+  // Helper to obfuscate a single extracted script
   const processSingleScript = async (item: ExtractedScript): Promise<string> => {
     if (item.isSelfClosing || item.isExternal || item.isNonExecutableData || !item.content.trim()) {
       return item.fullMatch;
@@ -132,7 +135,8 @@ export async function processHtmlDocument(
       if (!body.trim()) {
         return item.fullMatch;
       }
-      const obfBody = sanitizeObfuscatedTagBoundaries(await obfuscateInWorker(body, obfOptions));
+      const wrappedBody = wrapModuleBodyForObfuscation(body);
+      const obfBody = sanitizeObfuscatedTagBoundaries(await obfuscateInWorker(wrappedBody, obfOptions));
       scriptsObfuscated++;
       const combined = imports ? `${imports}\n${obfBody}` : obfBody;
       return `<script${item.attrs}>${combined}</script>`;
@@ -160,16 +164,14 @@ export async function processHtmlDocument(
       );
 
       if (headScripts.length > 0) {
-        onProgress?.({ stage: 'হেড স্ক্রিপ্ট এনকোড হচ্ছে...', percent: 45 });
+        onProgress?.({ stage: 'হেড স্ক্রিপ্ট এনকোড হচ্ছে...', percent: 42 });
         for (let i = 0; i < headScripts.length; i++) {
           const processed = await processSingleScript(headScripts[i]);
           headInner = headInner.replace(`__CG_HEAD_SCRIPT_${i}__`, () => processed);
         }
       }
 
-      // Inject domain lock guard & obfuscated CSS injector inside <head>
-      const injectedHeadExtras = [domainGuardTag, cssInjectorTag].filter(Boolean).join('\n');
-      const updatedHead = `${headMatch[1]}${headInner.trim()}${injectedHeadExtras ? '\n' + injectedHeadExtras : ''}\n${headMatch[3]}`;
+      const updatedHead = `${headMatch[1]}${headInner.trim()}${headCombinedTag ? '\n' + headCombinedTag : ''}\n${headMatch[3]}`;
       working = working.slice(0, headMatch.index) + updatedHead + working.slice(headMatch.index + headMatch[0].length);
     }
   }
@@ -177,7 +179,7 @@ export async function processHtmlDocument(
   // --- STEP 4: Process <body> (Hide Static HTML + Obfuscate Scripts + Anti-Inspect) ---
   let antiInspectTag = '';
   if (settings.antiInspectAndCopy) {
-    onProgress?.({ stage: 'Anti-Inspect ও Anti-Copy সুরক্ষা তৈরি হচ্ছে...', percent: 85 });
+    onProgress?.({ stage: 'Anti-Inspect ও Anti-Copy সুরক্ষা তৈরি হচ্ছে...', percent: 86 });
     const antiRaw = buildAntiInspectScript();
     const antiObf = sanitizeObfuscatedTagBoundaries(await obfuscateInWorker(antiRaw, obfOptions));
     antiInspectTag = `<script>${antiObf}</script>`;
@@ -202,7 +204,6 @@ export async function processHtmlDocument(
         }
       );
 
-      // Process all body scripts
       onProgress?.({ stage: 'Scripts এনকোড হচ্ছে...', percent: 68 });
       const processedBodyScripts: string[] = [];
       for (let i = 0; i < bodyScripts.length; i++) {
@@ -221,7 +222,7 @@ export async function processHtmlDocument(
           htmlHidden = true;
           scriptsObfuscated++;
         }
-        const headFallbackExtras = !hasHeadTag ? [domainGuardTag, cssInjectorTag].filter(Boolean).join('\n') : '';
+        const headFallbackExtras = !hasHeadTag && headCombinedTag ? headCombinedTag : '';
         finalBodyInner = [headFallbackExtras, htmlMountPart, ...processedBodyScripts, antiInspectTag]
           .filter(Boolean)
           .join('\n');
@@ -230,7 +231,7 @@ export async function processHtmlDocument(
         for (let i = 0; i < processedBodyScripts.length; i++) {
           restoredBody = restoredBody.replace(`__CG_BODY_SCRIPT_${i}__`, () => processedBodyScripts[i]);
         }
-        const headFallbackExtras = !hasHeadTag ? [domainGuardTag, cssInjectorTag].filter(Boolean).join('\n') : '';
+        const headFallbackExtras = !hasHeadTag && headCombinedTag ? headCombinedTag : '';
         finalBodyInner = [headFallbackExtras, restoredBody.trim(), antiInspectTag].filter(Boolean).join('\n');
       }
 
@@ -267,14 +268,14 @@ export async function processHtmlDocument(
         htmlHidden = true;
         scriptsObfuscated++;
       }
-      working = [domainGuardTag, cssInjectorTag, mountPart, ...processedFragScripts, antiInspectTag]
+      working = [headCombinedTag, mountPart, ...processedFragScripts, antiInspectTag]
         .filter(Boolean)
         .join('\n');
     } else {
       for (let i = 0; i < processedFragScripts.length; i++) {
         fragmentHtml = fragmentHtml.replace(`__CG_FRAG_SCRIPT_${i}__`, () => processedFragScripts[i]);
       }
-      working = [domainGuardTag, cssInjectorTag, fragmentHtml.trim(), antiInspectTag]
+      working = [headCombinedTag, fragmentHtml.trim(), antiInspectTag]
         .filter(Boolean)
         .join('\n');
     }
