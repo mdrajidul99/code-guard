@@ -21,49 +21,49 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
   const faqs = [
     {
       q: 'Does CodeGuard upload my source code to a remote server?',
-      a: 'No. Every minification, CSS/HTML encapsulation, Web Worker JavaScript obfuscation, XML validation, and formatting step executes 100% locally inside your browser. Your source code never leaves your device.',
+      a: 'No. Every formatting, layout protection, XML validation, and restoration step runs 100% locally inside your browser. Your source code never leaves your device.',
     },
     {
-      q: 'What makes CodeGuard stronger than simple Base64 / document.write wrappers?',
-      a: 'CodeGuard uses the real javascript-obfuscator engine inside a background Web Worker with RC4 string array encryption, Control Flow Flattening (0.75), split strings, number-to-expression transforms, Self-Defending, Domain Lock, and Anti-Inspect protection—never fake Base64 or document.write().',
+      q: 'How does CodeGuard protect websites and themes?',
+      a: 'CodeGuard applies multi-layered code protection, hides static styles and layout markup from casual viewing, and includes optional Domain Lock and Anti-Inspect shields—while keeping interactive features working smoothly.',
     },
     {
-      q: 'Will obfuscating break Firebase, window.* functions, onclick="..." handlers, or ES modules?',
-      a: 'No. Safety flags (renameGlobals, renameProperties, transformObjectKeys, deadCodeInjection, debugProtection) stay strictly disabled, while ignoreImports and smart <script type="module"> import extraction keep external libraries, Firebase calls, and inline HTML handlers working cleanly.',
+      q: 'Will securing code break interactive scripts, external libraries, or click handlers?',
+      a: 'No. Critical external CDN links, inline event handlers, and modern app imports are carefully preserved so websites, forms, and interactive apps continue running reliably.',
     },
     {
-      q: 'How does Blogger XML protection avoid Theme Editor XML save errors?',
-      a: 'CodeGuard preserves XML declarations, namespaces, <b:skin> variables/directives, <b:section>, <b:widget>, <b:includable>, <b:if>, <b:loop>, <data:.../>, and AdSense/Analytics tags verbatim, wraps every obfuscated script inside Blogger-compliant //<![CDATA[ ... //]]> blocks, and validates the output with DOMParser before display.',
+      q: 'How does Blogger XML protection avoid Theme Editor save errors?',
+      a: 'CodeGuard preserves Blogger template structure, theme variables, widgets, loop directives, dynamic data tags, and AdSense/Analytics blocks safely, then validates the XML structure before you copy or download.',
     },
     {
-      q: 'Can CodeGuard decode RC4-obfuscated code back to original source?',
-      a: 'No—real RC4 + Control Flow Flattening + Self-Defending obfuscation is intentionally one-way. Keep your original source safe using the built-in "Download Original Backup" button or the automatic 5-slot local backup history. Restore Code can decode reversible Base64/Hex/Unicode wrappers and format any HTML, CSS, XML, or JS via js-beautify.',
+      q: 'How does Restore & Beautify work with secured or encoded code?',
+      a: 'CodeGuard can automatically recover exact secured code created in the same browser via its private local vault, decode common encoded wrappers, reconstruct hidden styles and layout blocks, and format HTML, CSS, JavaScript, and Blogger XML cleanly.',
     },
   ];
 
   const formatCards = [
     {
-      name: 'HTML (Website & App Code)',
+      name: 'HTML Website & App',
       ext: '.html',
       icon: <FileCode className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />,
-      desc: 'Preserves <meta>, <title>, <link>, CDN links, and <script type="module"> imports while hiding CSS & static HTML inside obfuscated JS runners.',
+      desc: 'Secures design, layout, and scripts of websites and web apps while keeping every feature working smoothly.',
       features: [
-        'RC4 + Control Flow Flattening in Web Worker',
-        'Domain Lock & custom hostname guard (about:blank)',
-        'Anti-Inspect & Anti-Copy (forms remain editable)',
-        'Zero document.write() — 100% modern DOM injection',
+        'Preserves meta tags, fonts, SEO links, and CDN scripts',
+        'Domain Lock guard blocks unauthorized hosting domains',
+        'Anti-Inspect & Anti-Copy while keeping forms editable',
+        'Includes built-in Live Preview sandbox testing',
       ],
     },
     {
-      name: 'Blogger XML (Themes & Widgets)',
+      name: 'Blogger XML',
       ext: '.xml',
       icon: <Zap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />,
-      desc: 'Engineered for Blogger templates. Protects custom scripts and static blocks while keeping all Blogger directives and AdSense untouched.',
+      desc: 'Protects Blogger theme styles, layout, and custom scripts cleanly without breaking XML or SEO tags.',
       features: [
-        'DOMParser XML validation before export',
-        'Blogger-safe //<![CDATA[ ... //]]> script wrapping',
-        'Preserves <b:includable>, <b:skin> <Variable>, <data:*>',
-        'Optional www.blogger.com preview Domain Lock whitelist',
+        'Automatic XML structure validation before export',
+        'Preserves Blogger sections, widgets, variables, and dynamic tags',
+        'Keeps AdSense & Google Analytics scripts untouched',
+        'Optional Blogger Dashboard preview domain whitelist',
       ],
     },
   ];
@@ -73,12 +73,11 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
       {/* Hero Section */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-[1.15] text-balance">
-          Real Client-Side Code Protection &amp; Obfuscation
+          Client-Side Code Protection &amp; Restoration
         </h1>
 
         <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto">
-          CodeGuard secures HTML websites, web apps, and Blogger XML themes using real{' '}
-          <code className="font-mono text-cyan-700 dark:text-cyan-300">javascript-obfuscator</code> inside a non-blocking Web Worker—with RC4 encryption, Control Flow Flattening, Domain Lock, and Anti-Inspect protection. 100% browser-based, zero server transmission.
+          Protect or restore your website HTML, web apps, and Blogger XML themes safely in one click. Everything runs privately inside your browser.
         </p>
 
         {/* Hero CTAs */}
@@ -158,22 +157,22 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
               1
             </div>
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              Select Mode &amp; Security Rules
+              Select Mode &amp; Protection Rules
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Choose HTML or Blogger XML, set Allowed Domains for Domain Lock, select RC4/Base64 encoding, and configure CSS/HTML hiding &amp; Anti-Inspect flags.
+              Choose HTML or Blogger XML, set Allowed Domains for Domain Lock, select protection strength, and enable layout hiding or Anti-Inspect guards.
             </p>
           </div>
 
           <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 space-y-3 shadow-sm">
-            <div className="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 flex items-center justify-center font-bold text-sm flex items-center gap-1">
+            <div className="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 flex items-center justify-center font-bold text-sm">
               <Cpu className="w-4 h-4" />
             </div>
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              Web Worker Obfuscation
+              Fast Browser Processing
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Large 50KB–150KB templates process smoothly off the main thread with live progress updates while preserving ES module imports, Blogger tags, and backups.
+              Large website files and full Blogger themes process smoothly right inside your browser while saving a local backup copy automatically.
             </p>
           </div>
 
@@ -182,10 +181,10 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
               <Lock className="w-4 h-4" />
             </div>
             <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              Verify, Test &amp; Deploy
+              Verify, Preview &amp; Deploy
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Run inside the smart Sandbox Preview (even when Domain Lock is configured), confirm DOMParser XML validity for Blogger, and export or copy immediately.
+              Test your secured or restored code in the built-in Live Preview frame, confirm XML safety for Blogger, and copy or download immediately.
             </p>
           </div>
         </div>
@@ -198,7 +197,7 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
             Frequently Asked Questions
           </h2>
           <p className="text-slate-600 dark:text-slate-400 text-sm">
-            Technical clarity about client-side obfuscation, Blogger XML safety, and source backups.
+            Quick answers about privacy, Blogger theme safety, backups, and code restoration.
           </p>
         </div>
 

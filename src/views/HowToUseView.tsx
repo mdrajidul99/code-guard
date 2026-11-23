@@ -24,11 +24,11 @@ export const HowToUseView: React.FC<Props> = ({ onNavigate }) => {
       steps: [
         'Secure Code ট্যাবে গিয়ে Select Format থেকে "HTML (Website & App Code)" নির্বাচন করুন।',
         'ইনপুট বক্সে আপনার সম্পূর্ণ HTML বা App কোড পেস্ট করুন (অথবা Sample বাটনে ক্লিক করে টেস্ট কোড লোড করুন)।',
-        'Security Control Panel থেকে আপনার পছন্দমতো অপশন সেট করুন: String Array Encoding (ডিফল্ট RC4 Strongest), Hide CSS & Static HTML inside JS, Anti-Inspect & Anti-Copy, এবং প্রয়োজন হলে Domain Lock।',
-        '"Secure Code (Encode)" বাটনে ক্লিক করুন। Web Worker-এ ব্রাউজার হ্যাং না করেই লাইভ প্রগ্রেসসহ আপনার কোড এনকোড হবে এবং অরিজিনাল কোডের একটি অটো-ব্যাকআপ সেভ হয়ে যাবে।',
-        '"Test & Run Output" দিয়ে লাইভ স্যান্ডবক্সে আউটপুট চালিয়ে যাচাই করুন এবং Copy বা Download (.html) করে ব্যবহার করুন।',
+        'Security Control Panel থেকে পছন্দমতো Protection Strength (Maximum, Standard, বা Light), Hide CSS & Static HTML inside JS, Anti-Inspect & Anti-Copy, এবং প্রয়োজনে Domain Lock সেট করুন।',
+        '"Secure Code (Encode)" বাটনে ক্লিক করুন। ব্রাউজার হ্যাং না হয়েই কোড সুরক্ষিত হবে এবং আপনার মূল কোডের একটি অটো-ব্যাকআপ সেভ হয়ে যাবে।',
+        '"Test & Run Output" দিয়ে লাইভ প্রিভিউ চালিয়ে যাচাই করুন এবং Copy বা Download (.html) করে ব্যবহার করুন।',
       ],
-      tip: 'আপনার <meta>, <title>, <link> (Google Fonts/Manifest/Favicon), এবং CDN <script src="..."> লিংক সম্পূর্ণ অক্ষত থাকবে। <script type="module">-এর টপ-লেভেল import স্টেটমেন্টগুলো আলাদা রেখে শুধুমাত্র ভেতরের লজিক সুরক্ষিত করা হয়।',
+      tip: 'আপনার SEO meta ট্যাগ, পেজ টাইটেল, Google Fonts, ওয়েব অ্যাপ ম্যানিফেস্ট এবং বাহ্যিক লাইব্রেরি লিংকগুলো সম্পূর্ণ অক্ষত থাকে যেন ওয়েবসাইট স্বাভাবিক গতিতে চলে।',
     },
     {
       id: 'blogger',
@@ -37,35 +37,35 @@ export const HowToUseView: React.FC<Props> = ({ onNavigate }) => {
       steps: [
         'সতর্কতা হিসেবে প্রথমে আপনার Blogger Dashboard -> Theme -> Backup থেকে মূল থিমের একটি ব্যাকআপ ডাউনলোড করে রাখুন।',
         'CodeGuard-এ Format থেকে "Blogger XML (Theme & Widget Code)" নির্বাচন করুন এবং সম্পূর্ণ XML থিম বা উইজেট পেস্ট করুন।',
-        'যদি আপনার ব্লগের নির্দিষ্ট ডোমেইনে থিমটি লক করতে চান, তবে Domain Lock বক্সে আপনার ডোমেইন লিখুন (যেমন: myblog.blogspot.com) এবং "Allow Blogger Preview (www.blogger.com)" চালু রাখুন যেন থিম প্রিভিউ কাজ করে।',
-        '"Secure Code (Encode)" চাপুন। CodeGuard স্বয়ংক্রিয়ভাবে <b:section>, <b:widget>, <b:includable>, <b:if>, <data:.../> এবং AdSense/Analytics অক্ষত রেখে কাস্টম JS ও CSS সুরক্ষিত করবে।',
-        'আউটপুট তৈরি হলে সবুজ "DOMParser XML Validation Passed" ব্যানার নিশ্চিত করুন, এরপর Copy বা XML ডাউনলোড করে Blogger Theme Editor-এ সেভ করুন।',
+        'নির্দিষ্ট ডোমেইনে থিমটি লক করতে চাইলে Domain Lock বক্সে ডোমেইন লিখুন (যেমন: myblog.blogspot.com) এবং Blogger Dashboard প্রিভিউ সচল রাখতে "Allow Blogger Preview (www.blogger.com)" চালু রাখুন।',
+        '"Secure Code (Encode)" চাপুন। CodeGuard স্বয়ংক্রিয়ভাবে ব্লগারের সেকশন, উইজেট, থিম ভ্যারিয়েবল, পোস্ট লুপ এবং AdSense/Analytics অক্ষত রেখে কাস্টম ডিজাইন ও স্ক্রিপ্ট সুরক্ষিত করবে।',
+        'আউটপুট তৈরি হলে সবুজ "XML Validation Passed" ব্যানার নিশ্চিত করুন, এরপর Copy বা XML ডাউনলোড করে Blogger Theme Editor-এ সেভ করুন।',
       ],
-      tip: 'প্রতিটি Obfuscated স্ক্রিপ্ট নিরাপদ //<![CDATA[ ... //]]> ব্লকের ভেতরে থাকে এবং কোনো কাঁচা "]]>" ক্যারেক্টার থাকে না, তাই org.xml.sax.SAXParseException এরর আসার ঝুঁকি থাকে না।',
+      tip: 'প্রতিটি সুরক্ষিত ব্লক ব্লগার থিম এডিটরের নিয়ম মেনে তৈরি করা হয় এবং আউটপুটের আগে অটোমেটিক XML স্ট্রাকচার ভ্যালিডেশন চেক সম্পন্ন হয়, তাই সেভ করার সময় কোনো XML এরর আসে না।',
     },
     {
       id: 'domain-lock',
       title: 'Domain Lock & Anti-Inspect',
       icon: <Lock className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />,
       steps: [
-        'Domain Lock ইনপুটে কমা দিয়ে অনুমোদিত ডোমেইনগুলো লিখুন (যেমন: example.blogspot.com, username.github.io)।',
-        'অন্য কোনো ডোমেইন বা কারও লোকাল কম্পিউটার (localhost) থেকে এই কোড চালানোর চেষ্টা করলে পেজ সঙ্গে সঙ্গে খালি হয়ে about:blank-এ রিডাইরেক্ট হবে।',
-        'Anti-Inspect & Anti-Copy চালু থাকলে ভিজিটরের ব্রাউজারে Right-Click, F12, Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+Shift+I/J/C/K এবং টেক্সট কপি ব্লক থাকবে।',
-        'তবে ওয়েবসাইটের সার্চ বার, লগইন ফর্ম বা কমেন্ট বক্সের <input>, <textarea>, <select> এবং contenteditable ফিল্ডগুলোতে টাইপ, সিলেক্ট ও কপি স্বাভাবিকভাবেই কাজ করবে।',
+        'Domain Lock বক্সে আপনার অনুমোদিত ডোমেইন লিখে Enter বা কমা (,) চাপুন (যেমন: example.blogspot.com, username.github.io)।',
+        'অন্য কোনো ডোমেইন বা অজানা সার্ভার থেকে এই কোড চালানোর চেষ্টা করলে পেজ সঙ্গে সঙ্গে খালি হয়ে সুরক্ষিত থাকবে।',
+        'Anti-Inspect & Anti-Copy চালু থাকলে ভিজিটরের ব্রাউজারে Right-Click, F12, Ctrl+U, Ctrl+S, Ctrl+P এবং টেক্সট কপি ব্লক থাকবে।',
+        'তবে ওয়েবসাইটের সার্চ বার, লগইন ফর্ম বা কমেন্ট বক্সের ইনপুট ফিল্ডগুলোতে টাইপ ও পেস্ট স্বাভাবিকভাবেই কাজ করবে।',
       ],
-      tip: 'Domain Lock দেওয়ার পরেও CodeGuard-এর "Test & Run Output" বাটনে ক্লিক করলে স্যান্ডবক্স প্রিভিউ কাজ করবে, কারণ প্রিভিউ দেখার সময় স্বয়ংক্রিয়ভাবে ডোমেইন লক ছাড়া টেস্ট বিল্ড রান হয় (কিন্তু Copy/Download আউটপুটে Domain Lock চালু থাকে)।',
+      tip: 'Domain Lock দেওয়ার পরেও CodeGuard-এর "Test & Run Output" বাটনে ক্লিক করলে প্রিভিউ কাজ করবে, কিন্তু Copy/Download করা আসল আউটপুটে Domain Lock সম্পূর্ণ সক্রিয় থাকবে।',
     },
     {
       id: 'restore',
       title: 'Restore Code & Auto-Backup',
       icon: <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />,
       steps: [
-        'মনে রাখবেন: RC4 + Control Flow Flattening + Self-Defending দিয়ে এনকোড করা আসল Obfuscated কোড কখনোই আগের সোর্স কোডে ডিকোড করা যায় না (এটি One-Way)।',
-        'তাই মূল কোড সংরক্ষণের জন্য Secure Code করার সময়ই CodeGuard আপনার ব্রাউজারের localStorage-এ সর্বশেষ ৫টি অরিজিনাল ব্যাকআপ অটো-সেভ করে এবং "Download Original Backup" বাটন দেয়।',
-        'সাধারণ Base64 (atob / document.write), Hex (\\x..), Unicode (\\u....), বা unescape(...) কোড ডিকোড করতে "Restore Code" পেজে যান, ফরম্যাট বাছাই করুন এবং "Restore & Decode" চাপুন।',
-        'যেকোনো HTML, CSS, Blogger XML বা JavaScript কোডের অগোছালো ইন্ডেন্টেশন ঠিক করতে "Beautify Code Only" বাটনে ক্লিক করুন।',
+        'যখন আপনি একই ব্রাউজারে CodeGuard দিয়ে কোনো কোড সিকিউর করেন, তখন তার ম্যাচিং তথ্য ও ব্যাকআপ আপনার ব্রাউজারের লোকাল ভল্টে নিরাপদে সংরক্ষিত থাকে।',
+        'পরবর্তীতে সেই সিকিউরড কোড (এমনকি ব্লগার থেকে view-source করা কোডও) Restore Code পেজে পেস্ট করে "Restore & Decode" চাপলে আপনার মূল কোড ফিরিয়ে আনা যায়।',
+        'এছাড়া যেকোনো এনকোডেড স্ক্রিপ্ট ডিকোড করতে, লুকানো স্টাইল ও লেআউট ব্লক সাজাতে অথবা HTML, CSS, JavaScript ও Blogger XML ফরম্যাট করতে "Restore & Decode" বা "Beautify Code Only" ব্যবহার করুন।',
+        'আউটপুট তৈরি হলে "Test & Run Restored Output" বাটনে ক্লিক করে সরাসরি প্রিভিউ দেখুন অথবা ডাউনলোড করুন।',
       ],
-      tip: 'গুরুত্বপূর্ণ প্রজেক্টের জন্য সবসময় "Download Original Backup" ক্লিক করে নিজের পিসি বা গুগল ড্রাইভে মূল ফাইল সংরক্ষণ করুন।',
+      tip: 'গুরুত্বপূর্ণ প্রজেক্টের মূল সোর্স ফাইল সবসময় সুরক্ষিত রাখতে "Download Original Backup" ব্যবহার করে নিজের পিসি বা ক্লাউড ড্রাইভে একটি কপি সেভ রাখুন।',
     },
   ];
 
@@ -79,7 +79,7 @@ export const HowToUseView: React.FC<Props> = ({ onNavigate }) => {
           How to Use CodeGuard
         </h1>
         <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-          HTML ওয়েবসাইট, Blogger XML থিম, Domain Lock এবং Restore/Backup ব্যবহারের সম্পূর্ণ গাইড (বাংলা ও ইংরেজিতে)।
+          HTML ওয়েবসাইট, Blogger XML থিম, Domain Lock এবং Restore/Backup ব্যবহারের সহজ গাইড।
         </p>
       </div>
 
@@ -139,7 +139,7 @@ export const HowToUseView: React.FC<Props> = ({ onNavigate }) => {
         <div className="p-4 rounded-xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/60 text-cyan-950 dark:text-cyan-200 text-xs sm:text-sm flex items-start gap-3">
           <CheckCircle2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <span className="font-semibold text-cyan-900 dark:text-cyan-100">Technical Tip:</span>
+            <span className="font-semibold text-cyan-900 dark:text-cyan-100">Helpful Tip:</span>
             <p className="leading-relaxed text-slate-700 dark:text-slate-300">{currentGuide.tip}</p>
           </div>
         </div>

@@ -28,7 +28,7 @@ export const TermsView: React.FC<TermsViewProps> = () => {
             <span>1. Acceptable Use</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            You agree to use CodeGuard only for lawful purposes. You must possess the legal right, ownership, or authorized license to minify, obfuscate, format, or modify any code you submit to this application. You must not use this tool to package or disguise malicious software, exploit payloads, phishing kits, or unlawful computer intrusions.
+            You agree to use CodeGuard only for lawful purposes. You must possess the legal right, ownership, or authorized license to protect, format, or modify any code you submit to this application. You must not use this tool to package or disguise malicious software, exploit payloads, or unlawful computer intrusions.
           </p>
         </section>
 
@@ -47,7 +47,7 @@ export const TermsView: React.FC<TermsViewProps> = () => {
             3. Sole User Responsibility for Backups
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            RC4 string encryption, control flow flattening, and identifier mangling are intentionally one-way transformations designed to protect source logic. <strong>You are solely responsible for creating and maintaining pristine backups of your original source files.</strong> CodeGuard provides a local &quot;Download Original Backup&quot; button and stores your 5 most recent inputs in browser storage for convenience, but MRS Engineers BD is not responsible for lost, overwritten, or unrecoverable source code.
+            Strong protection options apply deep transformations designed to safeguard your source logic. <strong>You are solely responsible for maintaining backups of your original source files.</strong> CodeGuard provides a local &quot;Download Original Backup&quot; button and automatic browser backup storage for convenience, but MRS Engineers BD is not responsible for lost or overwritten files.
           </p>
         </section>
 
@@ -56,16 +56,16 @@ export const TermsView: React.FC<TermsViewProps> = () => {
             4. Transformation Compatibility &amp; Testing
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            Always verify obfuscated HTML applications and Blogger XML templates in the Live Execution Sandbox and/or a staging Blogger blog before deploying to production, especially when enabling strict Domain Lock or Content Security Policies (CSP).
+            Always verify protected HTML applications and Blogger XML templates using the built-in preview sandbox or a test blog before publishing live, especially when enabling strict Domain Lock rules.
           </p>
         </section>
 
         <section className="space-y-2">
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-            5. Restoration Limitations
+            5. Restoration Scope
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            The Restore Code feature reformats code with <code className="font-mono">js-beautify</code> and decodes reversible Base64, hexadecimal (<code className="font-mono">\xHH</code>), unicode (<code className="font-mono">\uHHHH</code>), and <code className="font-mono">unescape</code> payloads. CodeGuard cannot reverse one-way RC4, control flow flattening, or self-defending obfuscation back into the original readable source code.
+            The Restore Code workspace decodes common encoded wrappers, reconstructs hidden style and layout blocks, recovers matching source code saved in the same browser vault, and reformats HTML, CSS, JavaScript, and Blogger XML cleanly. Non-reversible locked code created on other devices may require the original backup file.
           </p>
         </section>
 

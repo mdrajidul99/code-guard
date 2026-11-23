@@ -113,13 +113,17 @@ export const CodeEditor: React.FC<Props> = ({
     <div className="w-full flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-sm overflow-hidden focus-within:border-cyan-500/60 transition-colors">
       {/* Top Header Bar */}
       <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70 text-xs flex-wrap gap-2">
-        <div className="flex items-center gap-2 font-medium text-slate-800 dark:text-slate-200">
-          <Code2 className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
-          <span>{title}</span>
-          <span className="text-slate-400 dark:text-slate-500" aria-hidden="true">·</span>
-          <span className="text-slate-500 dark:text-slate-400 font-mono tabular-nums">{lines} {lines === 1 ? 'line' : 'lines'}</span>
-          <span className="text-slate-400 dark:text-slate-500" aria-hidden="true">·</span>
-          <span className="text-slate-500 dark:text-slate-400 font-mono tabular-nums">{(chars / 1024).toFixed(1)} KB</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 font-medium text-slate-800 dark:text-slate-200 min-w-0 flex-wrap">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Code2 className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+            <span className="truncate">{title}</span>
+          </div>
+          <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0 text-slate-500 dark:text-slate-400">
+            <span className="text-slate-400 dark:text-slate-500" aria-hidden="true">·</span>
+            <span className="font-mono tabular-nums whitespace-nowrap">{lines} {lines === 1 ? 'line' : 'lines'}</span>
+            <span className="text-slate-400 dark:text-slate-500" aria-hidden="true">·</span>
+            <span className="font-mono tabular-nums whitespace-nowrap">{(chars / 1024).toFixed(1)} KB</span>
+          </div>
         </div>
 
         {/* Action Buttons */}

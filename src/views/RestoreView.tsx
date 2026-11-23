@@ -15,43 +15,59 @@ import {
   Sparkles,
   AlignLeft,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
-  Info,
   ShieldAlert,
   History,
   Download,
+  Play,
+  X,
 } from 'lucide-react';
 
 type RestoreFormat = CodeFormat | 'javascript' | 'css';
 
 const RESTORE_SAMPLES: Record<RestoreFormat, string> = {
-  html: `<!-- CodeGuard Sample Reversible Wrapper -->
-<script type="text/javascript">
-(function() {
-  var _0xdata = "PGRpdiBjbGFzcz0idXNlci1jYXJkIj4KICA8aDI+U2VjdXJlIENsaWVudCBQb3J0YWw8L2gyPgogIDxwPldlbGNvbWUgdG8geW91ciBzZWN1cmVkIGRhc2hib2FyZC48L3A+CiAgPGJ1dHRvbiBjbGFzcz0iYnRuIiBvbmNsaWNrPSJhbGVydCgnQ29ubmVjdGVkIScpIj5Db25uZWN0PC9idXR0b24+CjwvZGl2Pg==";
-  document.write(atob(_0xdata));
-})();
-</script>`,
+  html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Restored App Demo</title>
+</head>
+<body>
+  <div id="cg-app-mount"></div>
+  <script>
+    (function(){var s=document.createElement('style');s.textContent=".card{max-width:420px;margin:24px auto;padding:20px;border-radius:12px;background:#0f172a;color:#f8fafc;font-family:sans-serif;}.btn{padding:8px 16px;border:none;border-radius:8px;background:#06b6d4;color:#fff;cursor:pointer;}";document.head.appendChild(s);})();
+  </script>
+  <script>
+    (function(){var m=document.getElementById('cg-app-mount');if(m){m.innerHTML="<div class=\\"card\\"><h2>CodeGuard Restore Demo</h2><p>বাংলা এবং English লেআউট সঠিকভাবে রিস্টোর হয়েছে।</p><button class=\\"btn\\" onclick=\\"document.getElementById('status').textContent='Active!'\\">Verify</button><p id=\\"status\\"></p></div>";}})();
+  </script>
+</body>
+</html>`,
 
   blogger: `<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html>
 <html xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b'>
 <head>
-  <b:skin><![CDATA[body{background:#fff;color:#222;}]]></b:skin>
+  <b:skin><![CDATA[/*Secured by CodeGuard*/]]></b:skin>
   <script type='text/javascript'>
   //<![CDATA[
-  eval(atob("ZnVuY3Rpb24gcmVuZGVyQmxvZyhpZCkgewogIGNvbnNvbGUubG9nKCdSZW5kZXJpbmcgYmxvZyBwb3N0OiAnICsgaWQpOwp9"));
+  (function(){var s=document.createElement('style');s.textContent="header{padding:16px;background:#0f172a;color:#fff;}footer{padding:12px;text-align:center;color:#64748b;}";document.head.appendChild(s);})();
   //]]>
   </script>
 </head>
 <body>
-  <b:section id='main'><b:widget id='Blog1' type='Blog'><b:includable id='main'><h1>Blog</h1></b:includable></b:widget></b:section>
+  <header class='site-header' id='cg-header-mount'></header>
+  <b:section id='main'><b:widget id='Blog1' type='Blog'><b:includable id='main'><h1>Blog Posts</h1></b:includable></b:widget></b:section>
+  <footer class='site-footer' id='cg-footer-mount'></footer>
+  <script type='text/javascript'>
+  //<![CDATA[
+  (function(){var _m=[["cg-header-mount","<div class='brand'>My Blogger Theme</div>"],["cg-footer-mount","<p>All rights reserved.</p>"]];for(var i=0;i<_m.length;i++){var el=document.getElementById(_m[i][0]);if(el){el.innerHTML=_m[i][1];}}})();
+  //]]>
+  </script>
 </body>
 </html>`,
 
-  javascript: `var msg = "\\x48\\x65\\x6c\\x6c\\x6f\\x20\\x43\\x6f\\x64\\x65\\x47\\x75\\x61\\x72\\x64";
-var greeting = "\\u0057\\u0065\\u006c\\u0063\\u006f\\u006d\\u0065";
-function greetUser(name){if(!name){return msg;}return greeting+" "+name;}`,
+  javascript: `eval(function(p,a,c,k,e,d){e=function(c){return c.toString(36)};if(!''.replace(/^/,String)){while(c--){d[c.toString(a)]=k[c]||c.toString(a)}k=[function(e){return d[e]}];e=function(){return'\\\\w+'};c=1};while(c--){if(k[c]){p=p.replace(new RegExp('\\\\b'+e(c)+'\\\\b','g'),k[c])}}return p}('0 1(2){3"4, "+2+"!"}5.6(1("7"));',8,8,'function|greetUser|name|return|Hello|console|log|CodeGuard'.split('|'),0,{}))`,
 
   css: `:root{--bg:#0f172a;--fg:#f8fafc;}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);}@media(min-width:768px){.card{padding:24px;}}`,
 };
@@ -67,17 +83,16 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
   const [format, setFormat] = useState<RestoreFormat>('html');
   const [options] = useState<RestoreOptions>({
     beautifyOnly: false,
-    deescapeHex: true,
-    deescapeUnicode: true,
-    decodeBase64AndUnescape: true,
     indentSize: 2,
   });
   const [stats, setStats] = useState<RestoreStats | null>(null);
   const [notes, setNotes] = useState<string[]>([]);
-  const [isOneWayDetected, setIsOneWayDetected] = useState(false);
+  const [nonReversibleLocked, setNonReversibleLocked] = useState(false);
+  const [xmlValidationError, setXmlValidationError] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [backups, setBackups] = useState<BackupEntry[]>([]);
+  const [showLivePreview, setShowLivePreview] = useState(false);
 
   useEffect(() => {
     setBackups(getStoredBackups());
@@ -88,8 +103,10 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
     setRestoredCode('');
     setStats(null);
     setNotes([]);
-    setIsOneWayDetected(false);
+    setNonReversibleLocked(false);
+    setXmlValidationError(null);
     setErrorMsg(null);
+    setShowLivePreview(false);
   };
 
   const handleLoadSample = (targetFormat?: RestoreFormat) => {
@@ -98,7 +115,7 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
     setErrorMsg(null);
   };
 
-  const handleExecuteRestore = (beautifyOnly = false) => {
+  const handleExecuteRestore = async (beautifyOnly = false) => {
     if (!sourceCode.trim()) {
       setErrorMsg('অনুগ্রহ করে ইনপুট বক্সে কোড পেস্ট করুন।');
       return;
@@ -108,19 +125,15 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
     setIsProcessing(true);
 
     try {
-      const effectiveOptions: Partial<RestoreOptions> = {
+      const result = await restoreCode(sourceCode, format, {
         ...options,
         beautifyOnly,
-        deescapeHex: !beautifyOnly,
-        deescapeUnicode: !beautifyOnly,
-        decodeBase64AndUnescape: !beautifyOnly,
-      };
-
-      const result = restoreCode(sourceCode, format, effectiveOptions);
+      });
       setRestoredCode(result.code);
       setStats(result.stats);
       setNotes(result.notes);
-      setIsOneWayDetected(result.isOneWayObfuscated);
+      setNonReversibleLocked(result.nonReversibleLocked);
+      setXmlValidationError(result.xmlValidationError);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMsg(`Restoration failed: ${msg}`);
@@ -131,14 +144,20 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
     }
   };
 
+  const handleDownloadRestored = () => {
+    if (!restoredCode) return;
+    const { extension, mimeType } = getFormatFileInfo(format);
+    downloadFile(restoredCode, `codeguard_restored_${Date.now()}${extension}`, mimeType);
+  };
+
   const getPlaceholderText = () => {
     switch (format) {
       case 'html':
-        return 'Paste HTML code (encoded, minified, or messy) here...';
+        return 'Paste HTML or Web App code (encoded, minified, or messy) here...';
       case 'blogger':
         return 'Paste Blogger XML theme or widget code here...';
       case 'javascript':
-        return 'Paste JavaScript code (Base64 / Hex \\xHH / Unicode \\uHHHH / minified JS) here...';
+        return 'Paste encoded, packed, or unformatted JavaScript code here...';
       case 'css':
         return 'Paste minified or unformatted CSS code here...';
     }
@@ -153,7 +172,7 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
             Restore, Decode &amp; Beautify Code
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl">
-            Decode reversible Base64 / Hex (<code className="font-mono">\x..</code>) / Unicode (<code className="font-mono">\u....</code>) / <code className="font-mono">unescape</code> wrappers and cleanly format any HTML, CSS, XML, or JS using <code className="font-mono">js-beautify</code>.
+            Decode encoded scripts and cleanly restore or format your HTML, CSS, JavaScript, and Blogger XML code.
           </p>
         </div>
 
@@ -168,6 +187,7 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
             onChange={(e) => {
               setFormat(e.target.value as RestoreFormat);
               setErrorMsg(null);
+              setXmlValidationError(null);
             }}
             className="bg-white dark:bg-slate-900 border border-cyan-600/40 dark:border-cyan-500/40 text-slate-900 dark:text-cyan-200 text-xs sm:text-sm rounded-lg px-3.5 py-2 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none cursor-pointer"
           >
@@ -176,17 +196,6 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
             <option value="javascript">JavaScript (.js)</option>
             <option value="css">CSS Stylesheet (.css)</option>
           </select>
-        </div>
-      </div>
-
-      {/* Honest One-Way Obfuscation Notice */}
-      <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/35 border border-amber-200 dark:border-amber-800/60 text-amber-950 dark:text-amber-200 text-xs sm:text-sm flex items-start gap-3">
-        <Info className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-        <div className="space-y-1 leading-relaxed">
-          <div className="font-semibold">গুরুত্বপূর্ণ ও সৎ তথ্য (Restore Limitation):</div>
-          <p className="text-amber-900 dark:text-amber-200/90 text-xs">
-            <strong>RC4 + Control Flow Flattening + Self-Defending</strong> দিয়ে এনকোড করা আসল Obfuscated কোড সম্পূর্ণ One-Way (অপরিবর্তনীয়) — এটি ডিকোড করে আগের সোর্স কোডে ফেরানো সম্ভব নয়। তাই সোর্স কোড সুরক্ষিত রাখতে সবসময় Secure Code ট্যাবের <strong>Download Original Backup</strong> অথবা অটো-সেভড লোকাল ব্যাকআপ ব্যবহার করুন। তবে যেকোনো সাধারণ <strong>Base64 / Hex (\x..) / Unicode (\u....) / unescape</strong> ডিকোড এবং যেকোনো HTML, CSS, Blogger XML বা JS কোড <strong>Beautify Code Only</strong> বাটনের মাধ্যমে <code className="font-mono">js-beautify</code> দিয়ে সুন্দরভাবে সাজানো যাবে।
-          </p>
         </div>
       </div>
 
@@ -257,8 +266,17 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
               disabled={isProcessing || !sourceCode.trim()}
               className="px-7 py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-md hover:shadow-cyan-500/25 transition-all flex items-center gap-2 cursor-pointer"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>Restore &amp; Decode</span>
+              {isProcessing ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Restoring Code...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Restore &amp; Decode</span>
+                </>
+              )}
             </button>
 
             <button
@@ -277,13 +295,32 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
       {/* 3. Output & Report */}
       {restoredCode && (
         <div className="space-y-6">
-          {isOneWayDetected && (
+          {/* Polite Non-Reversible Lock Notice (only if vault missed + 0 decode passes + 0 reconstructions + strong lock) */}
+          {nonReversibleLocked && (
             <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
               <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <span>
-                এই কোডে Strong One-Way Obfuscation (RC4 / Control Flow Flattening / Self-Defending) শনাক্ত হয়েছে। তাই শুধুমাত্র <code className="font-mono">js-beautify</code> দিয়ে ইন্ডেন্টেশন ও ফরম্যাটিং করা হয়েছে; মূল ভেরিয়েবল নাম বা এনক্রিপ্টেড লজিক ডিকোড করা সম্ভব নয়।
+                This code is protected with non-reversible locking and cannot be decoded on this device. Please use your saved Backup file or restore from the browser where it was originally secured.
               </span>
             </div>
+          )}
+
+          {/* Blogger XML Validation Banner */}
+          {format === 'blogger' && (
+            xmlValidationError ? (
+              <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs sm:text-sm flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="font-bold">XML Validation Notice</div>
+                  <p className="font-mono text-xs break-words">{xmlValidationError}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-300 text-xs flex items-center gap-2.5 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>XML Validation Passed — restored Blogger XML structure is valid and well-formed.</span>
+              </div>
+            )
           )}
 
           {stats && (
@@ -302,9 +339,9 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Items Decoded</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">Restored Items</div>
                   <div className="text-lg font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                    {stats.itemsDecoded} tokens
+                    {stats.vaultRecovered ? 'Exact Vault' : `${stats.itemsDecoded} items`}
                   </div>
                 </div>
                 <div>
@@ -341,11 +378,34 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
               showBackupDownload={false}
             />
 
-            <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1">
-              <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Formatted cleanly via js-beautify</span>
+            <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 px-1 flex-wrap gap-2">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Formatted cleanly</span>
+                </div>
+
+                {(format === 'html' || format === 'blogger') && (
+                  <button
+                    type="button"
+                    onClick={() => setShowLivePreview(true)}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 border border-emerald-300 dark:border-emerald-700/80 text-emerald-800 dark:text-emerald-300 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Test &amp; Run Restored Output</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleDownloadRestored}
+                  className="px-3 py-1.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/80 hover:bg-cyan-100 dark:hover:bg-cyan-900 border border-cyan-300 dark:border-cyan-700/80 text-cyan-800 dark:text-cyan-300 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download ({getFormatFileInfo(format).extension})</span>
+                </button>
               </div>
+
               <button
                 type="button"
                 onClick={() => setRestoredCode('')}
@@ -353,6 +413,50 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Clear Output</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Sandbox Preview Modal for Restored Output */}
+      {showLivePreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950/80">
+              <div className="flex items-center gap-2">
+                <Play className="w-4 h-4 text-emerald-600 dark:text-emerald-400 fill-current" />
+                <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
+                  Test &amp; Run Restored Output
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLivePreview(false)}
+                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                aria-label="Close restored preview"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 bg-slate-100 dark:bg-slate-950 min-h-[420px] p-2">
+              <iframe
+                title="Restored Output Preview"
+                srcDoc={restoredCode}
+                sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin"
+                className="w-full h-full min-h-[420px] rounded-lg border border-slate-300 dark:border-slate-800 bg-white"
+              />
+            </div>
+
+            <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between">
+              <span>Code runs locally inside an isolated preview frame.</span>
+              <button
+                type="button"
+                onClick={() => setShowLivePreview(false)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-medium cursor-pointer"
+              >
+                Close Preview
               </button>
             </div>
           </div>

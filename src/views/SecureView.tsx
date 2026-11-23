@@ -13,6 +13,7 @@ import { processHtmlDocument } from '../utils/htmlEngine.ts';
 import { processBloggerXml } from '../utils/bloggerEngine.ts';
 import { sanitizeDomainToken } from '../utils/jsHelpers.ts';
 import { clearStoredBackups, getStoredBackups, saveOriginalBackup } from '../utils/backupStorage.ts';
+import { saveToVault } from '../utils/vaultStorage.ts';
 import { downloadFile, getFormatFileInfo } from '../utils/download.ts';
 import { CodeEditor } from '../components/CodeEditor.tsx';
 import { DomainTagInput } from '../components/DomainTagInput.tsx';
@@ -152,7 +153,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
     setErrorMsg(null);
     setXmlValidationError(null);
     setIsProcessing(true);
-    setProgress({ stage: 'Web Worker চালু হচ্ছে...', percent: 5 });
+    setProgress({ stage: 'সুরক্ষা ইঞ্জিন চালু হচ্ছে...', percent: 5 });
 
     // Auto-save original code backup (last 5 entries in localStorage)
     const updatedBackups = saveOriginalBackup(sourceCode, format);
@@ -174,6 +175,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
           originalBytes > 0
             ? Math.round(((originalBytes - processedBytes) / originalBytes) * 100)
             : 0;
+
+        await saveToVault({
+          originalCode: sourceCode,
+          outputCode: res.output,
+          format: 'html',
+        });
 
         setOutputCode(res.output);
         setStats({
@@ -201,6 +208,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
           originalBytes > 0
             ? Math.round(((originalBytes - processedBytes) / originalBytes) * 100)
             : 0;
+
+        await saveToVault({
+          originalCode: sourceCode,
+          outputCode: res.output,
+          format: 'blogger',
+        });
 
         setOutputCode(res.output);
         setXmlValidationError(res.xmlValidationError);
@@ -288,9 +301,9 @@ export const SecureView: React.FC<SecureViewProps> = () => {
 
   const getGuidanceBadge = () => {
     if (format === 'html') {
-      return 'Mode 1: HTML (Website & App Code) — <meta>, <title>, <link>, CDN ও <script type="module"> অক্ষত রেখে CSS/HTML/JS আসল Obfuscation করা হবে।';
+      return 'HTML Mode: Ready to secure your HTML or Web App code.';
     }
-    return 'Mode 2: Blogger XML (Theme & Widget Code) — <b:skin>, <b:section>, <b:widget>, <b:includable>, <data:.../> ও AdSense অক্ষত রেখে //<![CDATA[ সহ এনকোড এবং DOMParser XML ভ্যালিডেশন করা হবে।';
+    return 'Blogger XML Mode: Ready to secure your Blogger theme safely.';
   };
 
   return (
@@ -303,7 +316,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
             <span>Secure Code Workspace</span>
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl">
-            100% Client-Side Web Worker Obfuscation Engine powered by real <code className="text-cyan-700 dark:text-cyan-300 font-mono">javascript-obfuscator</code>. Zero server upload.
+            Paste your code, configure protection options, and secure it instantly in your browser.
           </p>
         </div>
 
@@ -460,23 +473,23 @@ export const SecureView: React.FC<SecureViewProps> = () => {
             </h2>
           </div>
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            Control Flow Flattening (0.75), String Splitting &amp; Hex Identifiers Active
+            Advanced Logic Shield &amp; Layout Protection Active
           </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Left: String Array Encoding + Domain Lock */}
+          {/* Left: Protection Strength + Domain Lock */}
           <div className="lg:col-span-6 space-y-4">
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                String Array Encoding
+                Protection Strength
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {(
                   [
-                    { id: 'rc4', label: 'RC4 (Strongest)' },
-                    { id: 'base64', label: 'Base64' },
-                    { id: 'none', label: 'None' },
+                    { id: 'rc4', label: 'Maximum' },
+                    { id: 'base64', label: 'Standard' },
+                    { id: 'none', label: 'Light' },
                   ] as Array<{ id: StringArrayEncodingType; label: string }>
                 ).map((opt) => {
                   const active = settings.stringArrayEncoding === opt.id;
@@ -561,7 +574,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               />
               <div className="space-y-0.5">
                 <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  Self-Defending
+                  Tamper Protection
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   কোড ফরম্যাট বা রিভার্স করার চেষ্টা করলে রান বন্ধ হয়ে যাবে।
@@ -623,7 +636,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               {isProcessing ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>{progress?.stage || 'Securing inside Web Worker...'}</span>
+                  <span>{progress?.stage || 'Securing your code...'}</span>
                 </>
               ) : (
                 <>
@@ -681,7 +694,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
             ) : (
               <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-300 text-xs flex items-center gap-2.5 font-medium">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>DOMParser XML Validation Passed — কোনো অসামঞ্জস্যপূর্ণ ট্যাগ বা CDATA ত্রুটি নেই; ব্লগার থিমে নিরাপদে সেভ করা যাবে।</span>
+                <span>XML Validation Passed — কোনো অসামঞ্জস্যপূর্ণ ট্যাগ বা স্ট্রাকচার ত্রুটি নেই; ব্লগার থিমে নিরাপদে সেভ করা যাবে।</span>
               </div>
             )
           )}
@@ -695,18 +708,18 @@ export const SecureView: React.FC<SecureViewProps> = () => {
             <div className="flex items-center gap-3 flex-wrap font-mono text-[11px] text-slate-700 dark:text-slate-300">
               <span className="flex items-center gap-1">
                 <Cpu className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                Encoding: {settings.stringArrayEncoding.toUpperCase()}
+                Strength: {settings.stringArrayEncoding === 'rc4' ? 'Maximum' : settings.stringArrayEncoding === 'base64' ? 'Standard' : 'Light'}
               </span>
               {stats?.cssHidden && (
                 <span className="flex items-center gap-1">
                   <EyeOff className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                  CSS Hidden in JS
+                  CSS Protected
                 </span>
               )}
               {stats?.htmlHidden && (
                 <span className="flex items-center gap-1">
                   <EyeOff className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                  Static HTML Hidden
+                  Layout Protected
                 </span>
               )}
               {stats?.domainLockActive && (
@@ -737,17 +750,17 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               </div>
 
               <div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Obfuscated Blocks</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Protected Blocks</div>
                 <div className="text-lg font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                  {stats.scriptsObfuscated} {stats.scriptsObfuscated === 1 ? 'script' : 'scripts'}
+                  {stats.scriptsObfuscated} {stats.scriptsObfuscated === 1 ? 'block' : 'blocks'}
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  {format === 'blogger' ? 'XML Theme Safe' : 'Non-Destructive DOM'}
+                  {format === 'blogger' ? 'XML Theme Safe' : 'Layout Safe'}
                 </div>
               </div>
 
               <div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Worker Time</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Processing Time</div>
                 <div className="text-lg font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums">
                   {stats.durationMs} ms
                 </div>

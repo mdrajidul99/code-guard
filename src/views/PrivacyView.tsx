@@ -28,7 +28,7 @@ export const PrivacyView: React.FC<PrivacyViewProps> = () => {
             <span>1. Zero Remote Transmission of Source Code</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            When you paste HTML, CSS, JavaScript, or Blogger XML templates into the CodeGuard workspace, every CSS minification pass, Web Worker obfuscation job, XML validation check, and js-beautify pass runs strictly inside your own browser. No source code is ever sent to any backend server.
+            When you paste HTML, CSS, JavaScript, or Blogger XML templates into CodeGuard, every protection, validation, restoration, and formatting step runs strictly inside your own browser. No source code is ever sent to any external server.
           </p>
         </section>
 
@@ -38,14 +38,14 @@ export const PrivacyView: React.FC<PrivacyViewProps> = () => {
             <span>2. Local Browser Storage Usage</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            CodeGuard does not use advertising cookies, tracking pixels, or analytics telemetry. The only data stored locally in your browser&apos;s <code className="font-mono text-cyan-700 dark:text-cyan-300">localStorage</code> is:
+            CodeGuard does not use advertising cookies, tracking pixels, or analytics telemetry. Data saved strictly on your local device includes:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-slate-600 dark:text-slate-400">
             <li>
-              <strong className="text-slate-900 dark:text-slate-200">codeguard_theme</strong>: Stores your preferred color theme (<code className="font-mono text-cyan-700 dark:text-cyan-300">&quot;dark&quot;</code> or <code className="font-mono text-cyan-700 dark:text-cyan-300">&quot;light&quot;</code>).
+              <strong className="text-slate-900 dark:text-slate-200">Theme Preference</strong>: Remembers whether you prefer Dark or Light mode.
             </li>
             <li>
-              <strong className="text-slate-900 dark:text-slate-200">codeguard_backups_v1</strong>: Stores up to your last 5 original source inputs locally so you can recover or download your un-obfuscated source at any time. You can delete these backups in one click from the Backups panel.
+              <strong className="text-slate-900 dark:text-slate-200">Local Backups &amp; Recovery Vault</strong>: Stores recent source backups and recovery signatures locally inside your browser so you can recover or restore your own code at any time without uploading anything.
             </li>
           </ul>
         </section>
@@ -55,7 +55,7 @@ export const PrivacyView: React.FC<PrivacyViewProps> = () => {
             3. Static Assets &amp; Fonts
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            CodeGuard loads web typography from Google Fonts (Plus Jakarta Sans &amp; JetBrains Mono). Application scripts and Web Worker obfuscation libraries are bundled directly inside the static client build with zero external API calls during code processing.
+            CodeGuard loads web typography from Google Fonts. All processing tools run directly from static application files inside your browser with zero backend API calls during code transformation.
           </p>
         </section>
 
@@ -74,7 +74,7 @@ export const PrivacyView: React.FC<PrivacyViewProps> = () => {
             <span>5. Contact for Privacy Inquiries</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            If you have questions regarding this privacy policy or our local Web Worker architecture, reach the engineering team directly:
+            If you have questions regarding this privacy policy or how CodeGuard handles data locally, reach our team directly:
           </p>
           <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs">
             <div className="font-semibold text-slate-900 dark:text-slate-200">MRS Engineers BD</div>

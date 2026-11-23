@@ -59,7 +59,7 @@ export const ContactView: React.FC<ContactViewProps> = () => {
               <span>Response Time Expectation</span>
             </div>
             <p className="leading-relaxed">
-              We review all inquiries and bug reports promptly. For Blogger XML or ES module edge cases, please include a minimal snippet to help reproduce the issue.
+              We review all inquiries and bug reports promptly. For Blogger XML or web app compatibility edge cases, please include a minimal snippet to help reproduce the issue.
             </p>
           </div>
         </div>

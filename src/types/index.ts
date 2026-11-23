@@ -32,9 +32,6 @@ export interface ProcessingStats {
 
 export interface RestoreOptions {
   beautifyOnly: boolean;
-  deescapeHex: boolean;
-  deescapeUnicode: boolean;
-  decodeBase64AndUnescape: boolean;
   indentSize: number;
 }
 
@@ -42,8 +39,19 @@ export interface RestoreStats {
   originalSize: number;
   restoredSize: number;
   itemsDecoded: number;
+  passesUsed: number;
+  vaultRecovered: boolean;
+  sandboxReconstructed: boolean;
   formatApplied: CodeFormat | 'javascript' | 'css';
   durationMs: number;
+}
+
+export interface RestoreResult {
+  code: string;
+  stats: RestoreStats;
+  notes: string[];
+  nonReversibleLocked: boolean;
+  xmlValidationError: string | null;
 }
 
 export interface BackupEntry {
@@ -53,6 +61,15 @@ export interface BackupEntry {
   size: number;
   code: string;
   preview: string;
+}
+
+export interface VaultEntry {
+  id: string;
+  fullOutputHash: string;
+  scriptHashes: string[];
+  originalCode: string;
+  format: CodeFormat;
+  timestamp: number;
 }
 
 export type ActivePage =
