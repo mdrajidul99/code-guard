@@ -1,5 +1,11 @@
 import type { ObfuscatorOptions } from 'javascript-obfuscator';
-import type { WorkerObfuscateResponse } from '../workers/obfuscator.worker.ts';
+
+export interface WorkerObfuscateResponse {
+  id: number;
+  ok: boolean;
+  code?: string;
+  error?: string;
+}
 
 let sharedWorker: Worker | null = null;
 let nextRequestId = 1;
@@ -13,9 +19,12 @@ const pendingMap = new Map<number, PendingTask>();
 
 function getWorker(): Worker {
   if (!sharedWorker) {
-    sharedWorker = new Worker(new URL('../workers/obfuscator.worker.ts', import.meta.url), {
-      type: 'module',
-    });
+    const baseUrl = (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL || '/code-guard/';
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+    const workerUrl = `${normalizedBase}obfuscator-worker.js`;
+
+    // Classic Web Worker so pre-built javascript-obfuscator UMD bundle & importScripts run without strict-mode globals errors
+    sharedWorker = new Worker(workerUrl);
 
     sharedWorker.onmessage = (event: MessageEvent<WorkerObfuscateResponse>) => {
       const { id, ok, code, error } = event.data;
@@ -42,8 +51,8 @@ function getWorker(): Worker {
 }
 
 /**
- * Runs javascript-obfuscator inside a dedicated Web Worker so large files
- * (50KB-150KB+) never freeze the browser UI.
+ * Runs javascript-obfuscator inside a dedicated classic Web Worker so large files
+ * (50KB-150KB+) never freeze the browser UI and avoid ESM strict-mode UMD issues.
  */
 export function obfuscateInWorker(code: string, options: ObfuscatorOptions): Promise<string> {
   if (!code || !code.trim()) {

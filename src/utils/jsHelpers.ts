@@ -2,7 +2,7 @@ import type { ObfuscatorOptions } from 'javascript-obfuscator';
 import { CodeFormat, SecuritySettings } from '../types/index.ts';
 
 /**
- * Parses comma-separated domain input into clean hostnames.
+ * Parses comma-, space-, semicolon-, or newline-separated domain input into clean hostnames.
  * Automatically adds www.blogger.com when format is 'blogger' and allowBloggerPreview is true.
  */
 export function parseDomainList(
@@ -11,7 +11,7 @@ export function parseDomainList(
   allowBloggerPreview: boolean
 ): string[] {
   const rawList = domainInput
-    .split(/[\n,]+/)
+    .split(/[\s,;]+/)
     .map((item) =>
       item
         .trim()

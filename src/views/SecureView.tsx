@@ -11,6 +11,7 @@ import {
 import { SAMPLES } from '../utils/samples.ts';
 import { processHtmlDocument } from '../utils/htmlEngine.ts';
 import { processBloggerXml } from '../utils/bloggerEngine.ts';
+import { parseDomainList } from '../utils/jsHelpers.ts';
 import { clearStoredBackups, getStoredBackups, saveOriginalBackup } from '../utils/backupStorage.ts';
 import { downloadFile, getFormatFileInfo } from '../utils/download.ts';
 import { CodeEditor } from '../components/CodeEditor.tsx';
@@ -464,20 +465,40 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                 className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300"
               >
                 <Globe className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                <span>Domain Lock (Allowed Domains — কমা দিয়ে লিখুন)</span>
+                <span>Domain Lock (Allowed Domains — কমা বা স্পেস দিয়ে লিখুন)</span>
               </label>
               <input
                 id="cg-domain-lock"
                 type="text"
+                inputMode="url"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 value={settings.domainLock}
                 onChange={(e) =>
                   setSettings((prev) => ({ ...prev, domainLock: e.target.value }))
                 }
-                placeholder="e.g. example.blogspot.com, username.github.io"
+                placeholder="e.g. mrs-engineersbd.blogspot.com, www.blogger.com, mdrajidul99.github.io"
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
               />
+              {(() => {
+                const parsedDomains = parseDomainList(
+                  settings.domainLock,
+                  format,
+                  settings.allowBloggerPreview
+                );
+                if (parsedDomains.length > 0) {
+                  return (
+                    <div className="text-[11px] text-cyan-700 dark:text-cyan-300 font-mono leading-relaxed break-all">
+                      Active Lock ({parsedDomains.length}): {parsedDomains.join(', ')}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                ডোমেইন দেওয়া থাকলে অন্য ডোমেইন বা localhost-এ কোড চালালে স্বয়ংক্রিয়ভাবে পেজ খালি (<code className="font-mono">about:blank</code>) হয়ে যাবে।
+                কমা (<code className="font-mono">,</code>) বা স্পেস দিয়ে একাধিক ডোমেইন লিখুন (Enter চাপার প্রয়োজন নেই)। অন্য ডোমেইন বা localhost-এ কোড চালালে পেজ খালি (<code className="font-mono">about:blank</code>) হয়ে যাবে।
               </p>
             </div>
           </div>

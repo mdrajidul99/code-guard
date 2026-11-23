@@ -80,8 +80,11 @@ export default defineConfig(() => {
         },
       },
     ],
+    optimizeDeps: {
+      exclude: ['javascript-obfuscator'],
+    },
     worker: {
-      format: 'es',
+      format: 'iife',
     },
     resolve: {
       alias: {
