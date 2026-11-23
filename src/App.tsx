@@ -73,12 +73,11 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 dark:bg-slate-950 dark:text-slate-100 light:bg-slate-50 light:text-slate-900 transition-colors">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
       <Header activePage={activePage} onNavigate={handleNavigate} onBack={handleBack} />
-      
-      {/* Top Back & Breadcrumb Bar on all inner pages */}
+
       <PageBackBar currentPage={activePage} onBack={handleBack} onNavigate={handleNavigate} />
-      
+
       <main className="flex-1">
         {activePage === 'home' && <HomeView onNavigate={handleNavigate} />}
         {activePage === 'secure' && <SecureView onBack={handleBack} onNavigate={handleNavigate} />}

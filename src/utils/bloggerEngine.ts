@@ -1,10 +1,32 @@
-import { SecureOptions } from '../types/index.ts';
-import { minifyCss } from './cssEngine.ts';
-import { encodeUtf8ToBase64, decodeBase64ToUtf8 } from './encodingUtils.ts';
+import { ProcessingProgress, SecuritySettings } from '../types/index.ts';
+import { minifyBloggerSkinWithDirectives, minifyCss } from './cssEngine.ts';
+import {
+  buildAntiInspectScript,
+  buildDomainLockGuardScript,
+  buildObfuscatorOptions,
+  parseDomainList,
+  sanitizeObfuscatedTagBoundaries,
+  splitModuleImports,
+} from './jsHelpers.ts';
+import { obfuscateInWorker } from './workerClient.ts';
+
+export interface BloggerProcessResult {
+  output: string;
+  scriptsObfuscated: number;
+  cssHidden: boolean;
+  htmlHidden: boolean;
+  domainLockActive: boolean;
+  xmlValidationError: string | null;
+}
+
+const VOID_HTML_TAGS = new Set([
+  'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+  'link', 'meta', 'param', 'source', 'track', 'wbr',
+]);
 
 /**
- * Validates whether the given string is valid XML structure.
- * Returns null if valid, or an error string if invalid.
+ * Validates XML structure using the browser's DOMParser.
+ * Returns null if valid XML, or a descriptive error message if malformed.
  */
 export function validateBloggerXml(xmlString: string): string | null {
   if (typeof DOMParser === 'undefined') return null;
@@ -13,7 +35,7 @@ export function validateBloggerXml(xmlString: string): string | null {
     const doc = parser.parseFromString(xmlString, 'application/xml');
     const parserError = doc.querySelector('parsererror');
     if (parserError) {
-      return parserError.textContent || 'Unknown XML Syntax Validation Error';
+      return parserError.textContent?.trim() || 'Unknown XML Syntax Validation Error';
     }
     return null;
   } catch (err: unknown) {
@@ -22,144 +44,391 @@ export function validateBloggerXml(xmlString: string): string | null {
 }
 
 /**
- * Determines whether the code is a full Blogger XML template or an isolated gadget/snippet.
+ * Checks if a <script> tag is an AdSense, Google Analytics, or GTM script
+ * that must NEVER be altered or obfuscated.
  */
-export function isFullBloggerTemplate(code: string): boolean {
-  return /<b:skin\b|<b:section\b|<b:widget\b|xmlns:b=/i.test(code);
+function isProtectedAnalyticsOrAdSense(attrs: string, content: string): boolean {
+  const combined = attrs + '\n' + content;
+  return (
+    /googlesyndication\.com/i.test(combined) ||
+    /googletagmanager\.com/i.test(combined) ||
+    /google-analytics\.com/i.test(combined) ||
+    /\badsbygoogle\b/i.test(combined) ||
+    /\bGoogleAnalyticsObject\b/i.test(combined) ||
+    /\bgtag\s*\(/i.test(content) ||
+    /\bdataLayer\s*=\s*window\.dataLayer/i.test(content)
+  );
 }
 
 /**
- * Processes Blogger XML templates and widgets with 100% Blogger Theme Editor compatibility.
- * - Guarantees ZERO XML Parsing Errors (e.g. SAXParseException on b:includable or unmatched tags).
- * - Leaves all external scripts (with src=) untouched.
- * - Leaves all self-closing scripts (<script ... />) untouched.
- * - Leaves all dynamic Blogger tags (<b:includable>, <b:widget>, <data:...>, <expr:...>) untouched.
- * - Safely wraps standalone custom scripts into Blogger-compliant //<![CDATA[ ... //]]> runners.
- * - Safely minifies CSS inside <b:skin><![CDATA[ ... ]]></b:skin> while keeping Blogger variables intact.
+ * Finds and replaces ONLY top-level static HTML container blocks inside <body>
+ * that contain ZERO Blogger tags (<b:...>, </b:...>, <data:...>, expr:) and ZERO <script>/<style> tags.
+ * Uses a strict balanced tag scanner so XML nesting (e.g. <b:includable>) is never broken.
  */
-export function processBloggerXml(xmlCode: string, options: Partial<SecureOptions> = {}): string {
-  const trimmed = xmlCode.trim();
-  if (!trimmed) return '';
+async function hidePureStaticBodyBlocks(
+  bodyInner: string,
+  obfuscateFn: (code: string) => Promise<string>
+): Promise<{ result: string; hiddenCount: number; scriptsAdded: number }> {
+  const targetTags = new Set(['header', 'footer', 'nav', 'aside', 'div', 'section']);
+  let hiddenCount = 0;
+  let scriptsAdded = 0;
+  let mountCounter = 1;
 
-  const isFullTheme = isFullBloggerTemplate(trimmed);
+  // Scan from left to right at top-level of bodyInner
+  let output = '';
+  let pos = 0;
+  const len = bodyInner.length;
 
-  if (isFullTheme) {
-    let output = trimmed;
+  while (pos < len) {
+    const nextLt = bodyInner.indexOf('<', pos);
+    if (nextLt === -1) {
+      output += bodyInner.slice(pos);
+      break;
+    }
 
-    // 1. Minify CSS inside <b:skin><![CDATA[ ... ]]></b:skin>
-    if (options.bloggerMinifyCdataCss !== false) {
-      output = output.replace(
-        /(<b:skin\b[^>]*>\s*<!\[CDATA\[)([\s\S]*?)(\]\]>\s*<\/b:skin>)/gi,
-        (match, openPrefix, cssContent, closeSuffix) => {
-          try {
-            const minified = minifyCss(cssContent, {
-              cssMinifyWhitespace: true,
-              cssRemoveComments: false, // Keep Blogger variable definitions intact
-              cssShortenHexColors: true,
-              cssRemoveZeroUnits: true,
-            });
-            return `${openPrefix}\n${minified}\n${closeSuffix}`;
-          } catch {
-            return match;
-          }
+    output += bodyInner.slice(pos, nextLt);
+
+    // Check if this is an XML/HTML comment
+    if (bodyInner.startsWith('<!--', nextLt)) {
+      const commentEnd = bodyInner.indexOf('-->', nextLt + 4);
+      const end = commentEnd === -1 ? len : commentEnd + 3;
+      output += bodyInner.slice(nextLt, end);
+      pos = end;
+      continue;
+    }
+
+    // Read opening tag
+    const tagMatch = /^<([a-zA-Z][a-zA-Z0-9:-]*)(\s[^>]*)?(\/?)>/.exec(bodyInner.slice(nextLt));
+    if (!tagMatch) {
+      output += '<';
+      pos = nextLt + 1;
+      continue;
+    }
+
+    const fullOpenTag = tagMatch[0];
+    const tagName = tagMatch[1].toLowerCase();
+    const isSelfClosing = tagMatch[3] === '/' || VOID_HTML_TAGS.has(tagName);
+
+    // If it's a Blogger tag (<b:section>, <b:widget>, etc.) or <script> or <style>, skip to its matching closing tag verbatim!
+    if (tagName.startsWith('b:') || tagName === 'script' || tagName === 'style' || targetTags.has(tagName)) {
+      if (isSelfClosing) {
+        output += fullOpenTag;
+        pos = nextLt + fullOpenTag.length;
+        continue;
+      }
+
+      // Find balanced closing </tagName>
+      let depth = 1;
+      let scan = nextLt + fullOpenTag.length;
+      const openRegex = new RegExp(`<${tagName.replace(':', '\\:')}(?:\\s[^>]*)?(/?)>`, 'gi');
+      const closeRegex = new RegExp(`<\\/${tagName.replace(':', '\\:')}\\s*>`, 'gi');
+
+      while (depth > 0 && scan < len) {
+        openRegex.lastIndex = scan;
+        closeRegex.lastIndex = scan;
+        const nextOpen = openRegex.exec(bodyInner);
+        const nextClose = closeRegex.exec(bodyInner);
+
+        if (!nextClose) {
+          // Unbalanced fallback — abort replacement for this tag
+          scan = len;
+          break;
         }
-      );
+
+        if (nextOpen && nextOpen.index < nextClose.index) {
+          const selfCloseNested = nextOpen[1] === '/' || VOID_HTML_TAGS.has(tagName);
+          if (!selfCloseNested) depth++;
+          scan = nextOpen.index + nextOpen[0].length;
+        } else {
+          depth--;
+          scan = nextClose.index + nextClose[0].length;
+        }
+      }
+
+      if (depth !== 0) {
+        // Could not balance cleanly — keep original character by character
+        output += fullOpenTag;
+        pos = nextLt + fullOpenTag.length;
+        continue;
+      }
+
+      const fullBlock = bodyInner.slice(nextLt, scan);
+
+      // Only hide if:
+      // 1. It is one of our pure HTML block tags (NOT b:*, script, style)
+      // 2. Contains ZERO Blogger tags/directives (<b:, </b:, <data:, expr:)
+      // 3. Contains ZERO <script or <style tags
+      // 4. Meaningful size (>= 40 chars)
+      const hasBloggerDirective = /<b:|<\/b:|<data:|<expr:|\bexpr:/i.test(fullBlock);
+      const hasEmbeddedScriptOrStyle = /<script\b|<style\b/i.test(fullBlock);
+
+      if (
+        targetTags.has(tagName) &&
+        !hasBloggerDirective &&
+        !hasEmbeddedScriptOrStyle &&
+        fullBlock.trim().length >= 40
+      ) {
+        const mountId = `cg-xml-mount-${mountCounter++}`;
+        const cleanBlock = fullBlock.replace(/\s+/g, ' ').trim();
+        const mountCode = `(function(){var m=document.getElementById('${mountId}');if(m){m.innerHTML=${JSON.stringify(cleanBlock)};}})();`;
+        const obfMount = sanitizeObfuscatedTagBoundaries(await obfuscateFn(mountCode));
+        output += `<div id='${mountId}'></div>\n<script type='text/javascript'>\n//<![CDATA[\n${obfMount}\n//]]>\n</script>`;
+        hiddenCount++;
+        scriptsAdded++;
+      } else {
+        output += fullBlock;
+      }
+
+      pos = scan;
+      continue;
     }
 
-    // 2. Encode custom JavaScript <script> tags into XML-safe CDATA runners
-    // CRITICAL FIX: Only match scripts that have real inline code and DO NOT cross XML/Blogger boundaries!
-    output = output.replace(/(<script\b([^>]*)>)([\s\S]*?)(<\/script>)/gi, (match, openTag, attrs, content, closeTag) => {
-      // 1. Skip if external script with src attribute
-      if (/\bsrc\s*=/i.test(attrs)) return match;
-      // 2. Skip if self-closing opening tag
-      if (openTag.trim().endsWith('/>')) return match;
-      // 3. Skip JSON-LD, text/template, or other non-executable types
-      if (/\btype\s*=\s*["']?(?:application\/(?:ld\+)?json|text\/template|text\/x-template)/i.test(attrs)) return match;
-      // 4. Skip if content has another opening <script (means earlier script was unclosed or self-closing)
-      if (/<script\b/i.test(content)) return match;
-      // 5. CRITICAL: Skip if content contains Blogger XML tags like <b:widget>, <b:includable>, <data:...>, <expr:...>
-      // These are Blogger server-evaluated XML directives and MUST NEVER be touched or destroyed!
-      if (/<b:|<\/b:|<data:|<expr:/i.test(content)) return match;
-      // 6. Skip if empty or whitespace only
-      if (!content.trim()) return match;
-
-      // Extract pure JS content without CDATA wrapper
-      let rawJs = content.trim();
-      rawJs = rawJs.replace(/\/\/<!\[CDATA\[/gi, '').replace(/\/\/\]\]>/gi, '');
-      rawJs = rawJs.replace(/<!\[CDATA\[/gi, '').replace(/\]\]>/gi, '');
-      rawJs = rawJs.trim();
-      if (!rawJs) return match;
-
-      const b64 = encodeUtf8ToBase64(rawJs);
-
-      const protectedRunner = `\n//<![CDATA[\n/* CodeGaurd Protected Blogger Script */\n(function(){\n  var _0xb = "${b64}";\n  try {\n    var _b = window.atob(_0xb), _l = _b.length, _y = new Uint8Array(_l);\n    for (var i = 0; i < _l; i++) { _y[i] = _b.charCodeAt(i); }\n    var _c = new TextDecoder('utf-8').decode(_y);\n    (1, eval)(_c);\n  } catch(e) {\n    (1, eval)(decodeURIComponent(escape(window.atob(_0xb))));\n  }\n})();\n//]]>\n`;
-      return `${openTag}${protectedRunner}${closeTag}`;
-    });
-
-    return output.trim();
-  } else {
-    // Isolated snippet or widget for Blogger
-    const b64 = encodeUtf8ToBase64(trimmed);
-
-    return `<!-- ======================================================== -->
-<!-- CodeGaurd Protected Blogger Gadget / Snippet (XML Safe)   -->
-<!-- ======================================================== -->
-<script type='text/javascript'>
-//<![CDATA[
-(function() {
-  var _0xdata = "${b64}";
-  try {
-    var _b = window.atob(_0xdata), _l = _b.length, _y = new Uint8Array(_l);
-    for (var i = 0; i < _l; i++) { _y[i] = _b.charCodeAt(i); }
-    var _html = new TextDecoder('utf-8').decode(_y);
-    document.write(_html);
-  } catch(e) {
-    document.write(decodeURIComponent(escape(window.atob(_0xdata))));
+    output += fullOpenTag;
+    pos = nextLt + fullOpenTag.length;
   }
-})();
-//]]>
-</script>`;
-  }
+
+  return { result: output, hiddenCount, scriptsAdded };
 }
 
 /**
- * Restores and decodes Blogger XML templates and widgets.
- * Detects all encoded scripts (_0xb, _0xdata, etc.) inside CDATA blocks and
- * recovers the original readable code.
+ * Mode 2: Blogger XML (Theme & Widget Code) processing pipeline.
+ * - Preserves all <?xml?>, <!DOCTYPE>, namespaces, <b:include/>, <b:template-skin>,
+ *   <b:section>, <b:widget>, <b:includable>, <b:if>, <b:loop>, <data:...>, expr:, AdSense/Analytics.
+ * - Handles <b:skin> safely (hides pure CSS in obfuscated JS injector, or preserves <Variable>/<Group>/<b:if>).
+ * - Wraps every obfuscated script inside <script type='text/javascript'>\n//<![CDATA[\n...\n//]]>\n</script>.
+ * - Ensures obfuscated JS never contains raw `]]>`.
+ * - Runs DOMParser XML validation on final output.
  */
-export function restoreBloggerXml(xmlCode: string): { code: string; decodedCount: number } {
-  let decodedCount = 0;
-  let output = xmlCode;
+export async function processBloggerXml(
+  xmlCode: string,
+  settings: SecuritySettings,
+  options: {
+    forPreview?: boolean;
+    onProgress?: (progress: ProcessingProgress) => void;
+  } = {}
+): Promise<BloggerProcessResult> {
+  const trimmed = xmlCode.trim();
+  if (!trimmed) {
+    throw new Error('Input Blogger XML code is empty.');
+  }
 
-  // 1. Decode scripts with _0xb (Blogger JS runner)
-  const scriptRegex = /(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi;
-  output = output.replace(scriptRegex, (match, openTag, content, closeTag) => {
-    // Check for _0xb = "..."
-    const bMatch = /var\s+_0xb\s*=\s*["']([A-Za-z0-9+/=]+)["']/i.exec(content);
-    if (bMatch && bMatch[1]) {
-      try {
-        const decodedJs = decodeBase64ToUtf8(bMatch[1]);
-        decodedCount++;
-        return `${openTag}\n//<![CDATA[\n${decodedJs}\n//]]>\n${closeTag}`;
-      } catch {
-        return match;
+  const forPreview = Boolean(options.forPreview);
+  const onProgress = options.onProgress;
+
+  const domains = parseDomainList(settings.domainLock, 'blogger', settings.allowBloggerPreview);
+  const obfOptions = buildObfuscatorOptions(settings, domains, forPreview);
+  const domainLockActive = !forPreview && domains.length > 0;
+
+  let working = trimmed;
+  let scriptsObfuscated = 0;
+  let cssHidden = false;
+  let htmlHidden = false;
+
+  const obfuscateSafe = (code: string) => obfuscateInWorker(code, obfOptions);
+
+  // --- STEP 1: Domain Lock Guard (in <head>) ---
+  let domainGuardXml = '';
+  if (domainLockActive) {
+    onProgress?.({ stage: 'ডোমেইন লক সুরক্ষা তৈরি হচ্ছে...', percent: 10 });
+    const guardObf = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(buildDomainLockGuardScript(domains)));
+    domainGuardXml = `<script type='text/javascript'>\n//<![CDATA[\n${guardObf}\n//]]>\n</script>`;
+    scriptsObfuscated++;
+  }
+
+  // --- STEP 2: <b:skin> CSS Processing ---
+  onProgress?.({ stage: 'CSS এনকোড হচ্ছে...', percent: 25 });
+  let skinCssInjectorXml = '';
+
+  const skinRegex = /(<b:skin\b[^>]*>\s*<!\[CDATA\[)([\s\S]*?)(\]\]>\s*<\/b:skin>)/gi;
+  const skinMatches: Array<{ match: string; open: string; inner: string; close: string }> = [];
+  let sm: RegExpExecArray | null;
+  while ((sm = skinRegex.exec(working)) !== null) {
+    skinMatches.push({ match: sm[0], open: sm[1], inner: sm[2], close: sm[3] });
+  }
+
+  for (const item of skinMatches) {
+    const hasBloggerVarsOrIf = /<Variable\b|<Group\b|<b:/i.test(item.inner);
+    if (hasBloggerVarsOrIf) {
+      // Preserve Blogger variables, groups, and conditionals safely
+      const safeMinified = minifyBloggerSkinWithDirectives(item.inner);
+      working = working.replace(item.match, () => `${item.open}\n${safeMinified}\n${item.close}`);
+    } else if (settings.hideCssAndHtmlInJs) {
+      const minified = minifyCss(item.inner);
+      if (minified) {
+        const cssJs = `(function(){var s=document.createElement('style');s.textContent=${JSON.stringify(minified)};(document.head||document.documentElement).appendChild(s);})();`;
+        const obfCss = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(cssJs));
+        skinCssInjectorXml += `\n<script type='text/javascript'>\n//<![CDATA[\n${obfCss}\n//]]>\n</script>`;
+        working = working.replace(item.match, () => `${item.open}/*Secured by CodeGuard*/${item.close}`);
+        cssHidden = true;
+        scriptsObfuscated++;
       }
+    } else {
+      const minified = minifyCss(item.inner);
+      working = working.replace(item.match, () => `${item.open}\n${minified}\n${item.close}`);
     }
+  }
 
-    // Check for _0xdata = "..." (HTML gadget inside Blogger)
-    const dataMatch = /var\s+_0xdata\s*=\s*["']([A-Za-z0-9+/=]+)["']/i.exec(content);
-    if (dataMatch && dataMatch[1]) {
-      try {
-        const decodedHtml = decodeBase64ToUtf8(dataMatch[1]);
-        decodedCount++;
-        return decodedHtml;
-      } catch {
-        return match;
+  // Also handle standalone <style> blocks in <head> (only if no Blogger tags inside)
+  let standaloneCssInjectorXml = '';
+  if (settings.hideCssAndHtmlInJs) {
+    const headMatch = /(<head\b[^>]*>)([\s\S]*?)(<\/head>)/i.exec(working);
+    if (headMatch) {
+      const collectedHeadStyles: string[] = [];
+      let headInner = headMatch[2].replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (full, _o, cssInner) => {
+        if (/<b:|<\/b:|<data:|<expr:/i.test(cssInner)) return full;
+        const min = minifyCss(cssInner);
+        if (min) collectedHeadStyles.push(min);
+        return '';
+      });
+
+      if (collectedHeadStyles.length > 0) {
+        const merged = collectedHeadStyles.join('\n');
+        const cssJs = `(function(){var s=document.createElement('style');s.textContent=${JSON.stringify(merged)};(document.head||document.documentElement).appendChild(s);})();`;
+        const obfCss = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(cssJs));
+        standaloneCssInjectorXml = `\n<script type='text/javascript'>\n//<![CDATA[\n${obfCss}\n//]]>\n</script>`;
+        cssHidden = true;
+        scriptsObfuscated++;
       }
-    }
 
-    return match;
+      working =
+        working.slice(0, headMatch.index) +
+        `${headMatch[1]}${headInner}${headMatch[3]}` +
+        working.slice(headMatch.index + headMatch[0].length);
+    }
+  }
+
+  // --- STEP 3: Obfuscate Custom <script> & <script type='module'> tags ---
+  onProgress?.({ stage: 'Scripts এনকোড হচ্ছে...', percent: 50 });
+
+  const scriptSlots: Array<{ token: string; replacement: string }> = [];
+  let scriptIndex = 0;
+
+  // Tokenize matching scripts first so async Worker calls happen cleanly
+  const scriptCandidates: Array<{ token: string; openTag: string; attrs: string; content: string; closeTag: string; rawMatch: string }> = [];
+
+  working = working.replace(/(<script\b([^>]*)>)([\s\S]*?)(<\/script>)/gi, (rawMatch, openTag, attrs, content, closeTag) => {
+    // 1. Skip external scripts (src=)
+    if (/\bsrc\s*=/i.test(attrs)) return rawMatch;
+    // 2. Skip self-closing scripts
+    if (openTag.trim().endsWith('/>')) return rawMatch;
+    // 3. Skip JSON-LD, templates, importmaps
+    if (/\btype\s*=\s*["']?(?:application\/(?:ld\+)?json|text\/template|text\/x-template|importmap)["']?/i.test(attrs)) return rawMatch;
+    // 4. Skip AdSense / Analytics scripts
+    if (isProtectedAnalyticsOrAdSense(attrs, content)) return rawMatch;
+    // 5. Skip nested <script> tags (safety against self-closing mismatch)
+    if (/<script\b/i.test(content)) return rawMatch;
+    // 6. Skip scripts containing Blogger server tags (<b:, </b:, <data:, <expr:)
+    if (/<b:|<\/b:|<data:|<expr:/i.test(content)) return rawMatch;
+    // 7. Skip empty scripts
+    if (!content.trim()) return rawMatch;
+
+    const token = `__CG_XML_SCRIPT_${scriptIndex++}__`;
+    scriptCandidates.push({ token, openTag, attrs, content, closeTag, rawMatch });
+    return token;
   });
 
-  return { code: output, decodedCount };
+  for (const cand of scriptCandidates) {
+    // Strip existing CDATA markers
+    let rawJs = cand.content.trim();
+    rawJs = rawJs
+      .replace(/\/\/<!\[CDATA\[/gi, '')
+      .replace(/\/\/\]\]>/gi, '')
+      .replace(/<!\[CDATA\[/gi, '')
+      .replace(/\]\]>/gi, '')
+      .trim();
+
+    if (!rawJs) {
+      scriptSlots.push({ token: cand.token, replacement: cand.rawMatch });
+      continue;
+    }
+
+    const isModule = /\btype\s*=\s*["']?module["']?/i.test(cand.attrs);
+
+    if (isModule) {
+      const { imports, body } = splitModuleImports(rawJs);
+      if (!body.trim()) {
+        scriptSlots.push({ token: cand.token, replacement: cand.rawMatch });
+        continue;
+      }
+      const obfBody = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(body));
+      scriptsObfuscated++;
+      const combined = imports ? `${imports}\n${obfBody}` : obfBody;
+      scriptSlots.push({
+        token: cand.token,
+        replacement: `<script type='module'>\n//<![CDATA[\n${combined}\n//]]>\n</script>`,
+      });
+    } else {
+      const obfJs = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(rawJs));
+      scriptsObfuscated++;
+      scriptSlots.push({
+        token: cand.token,
+        replacement: `<script type='text/javascript'>\n//<![CDATA[\n${obfJs}\n//]]>\n</script>`,
+      });
+    }
+  }
+
+  // --- STEP 4: Hide Pure Static HTML Blocks inside <body> (preserving ALL Blogger tags) ---
+  if (settings.hideCssAndHtmlInJs) {
+    const bodyMatch = /(<body\b[^>]*>)([\s\S]*?)(<\/body>)/i.exec(working);
+    if (bodyMatch) {
+      onProgress?.({ stage: 'HTML এনকোড হচ্ছে...', percent: 72 });
+      const { result: protectedBody, hiddenCount, scriptsAdded } = await hidePureStaticBodyBlocks(
+        bodyMatch[2],
+        obfuscateSafe
+      );
+      if (hiddenCount > 0) {
+        htmlHidden = true;
+        scriptsObfuscated += scriptsAdded;
+      }
+      working =
+        working.slice(0, bodyMatch.index) +
+        `${bodyMatch[1]}${protectedBody}${bodyMatch[3]}` +
+        working.slice(bodyMatch.index + bodyMatch[0].length);
+    }
+  }
+
+  // Restore obfuscated script tokens back into XML
+  for (const slot of scriptSlots) {
+    working = working.replace(slot.token, () => slot.replacement);
+  }
+
+  // Inject <head> scripts (Domain Lock + CSS Injector) before </head>
+  const headInjectors = [domainGuardXml, skinCssInjectorXml, standaloneCssInjectorXml].filter(Boolean).join('\n');
+  if (headInjectors) {
+    if (/<\/head>/i.test(working)) {
+      working = working.replace(/<\/head>/i, () => `${headInjectors}\n</head>`);
+    } else {
+      working = `${headInjectors}\n${working}`;
+    }
+  }
+
+  // --- STEP 5: Anti-Inspect & Anti-Copy Guard before </body> ---
+  if (settings.antiInspectAndCopy) {
+    onProgress?.({ stage: 'Anti-Inspect ও Anti-Copy সুরক্ষা তৈরি হচ্ছে...', percent: 88 });
+    const antiObf = sanitizeObfuscatedTagBoundaries(await obfuscateSafe(buildAntiInspectScript()));
+    const antiXml = `<script type='text/javascript'>\n//<![CDATA[\n${antiObf}\n//]]>\n</script>`;
+    scriptsObfuscated++;
+
+    if (/<\/body>/i.test(working)) {
+      working = working.replace(/<\/body>/i, () => `${antiXml}\n</body>`);
+    } else {
+      working = `${working}\n${antiXml}`;
+    }
+  }
+
+  // --- STEP 6: Mandatory XML Validation via DOMParser ---
+  onProgress?.({ stage: 'XML ভ্যালিডেশন চেক হচ্ছে...', percent: 96 });
+  const finalOutput = working.trim();
+  const xmlValidationError = validateBloggerXml(finalOutput);
+
+  onProgress?.({ stage: 'সম্পন্ন হচ্ছে...', percent: 100 });
+
+  return {
+    output: finalOutput,
+    scriptsObfuscated,
+    cssHidden,
+    htmlHidden,
+    domainLockActive,
+    xmlValidationError,
+  };
 }

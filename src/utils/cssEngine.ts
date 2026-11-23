@@ -1,82 +1,73 @@
-import { SecureOptions } from '../types/index.ts';
-
 /**
- * Minifies CSS source code safely in the browser.
+ * Safe CSS Minifier that preserves CSS custom properties (var(--...)),
+ * @media queries, @keyframes, calc() expressions, colors, fonts,
+ * quoted strings, and url(...) values without breaking layout rules.
  */
-export function minifyCss(css: string, options: Partial<SecureOptions> = {}): string {
-  let output = css;
+export function minifyCss(css: string): string {
+  if (!css || !css.trim()) return '';
 
-  // 1. Remove comments
-  if (options.cssRemoveComments !== false) {
-    // Preserve special comment if starts with /*!
-    output = output.replace(/\/\*(?!\!)([\s\S]*?)\*\//g, '');
-  }
+  // Clean implementation:
+  const tokens: string[] = [];
+  let safe = css.replace(
+    /("([^"\\]|\\.)*"|'([^'\\]|\\.)*'|url\(\s*(?:"[^"]*"|'[^']*'|[^)]*)\s*\))/gi,
+    (match) => {
+      const id = `__CG_CSS_TOK_${tokens.length}__`;
+      tokens.push(match);
+      return id;
+    }
+  );
 
-  // 2. Remove unnecessary whitespace
-  if (options.cssMinifyWhitespace !== false) {
-    // Collapse multiple whitespace
-    output = output.replace(/\s+/g, ' ');
+  // Strip comments (except /*!)
+  safe = safe.replace(/\/\*(?!\!)[\s\S]*?\*\//g, '');
 
-    // Remove whitespace around colons, semicolons, brackets, braces, commas
-    output = output.replace(/\s*([{}:;,>+~])\s*/g, '$1');
+  // Collapse runs of whitespace to single space
+  safe = safe.replace(/\s+/g, ' ');
 
-    // Remove trailing semicolons in declarations
-    output = output.replace(/;}/g, '}');
+  // Strip whitespace around braces, semicolons, commas
+  safe = safe
+    .replace(/\s*\{\s*/g, '{')
+    .replace(/\s*\}\s*/g, '}')
+    .replace(/\s*;\s*/g, ';')
+    .replace(/\s*,\s*/g, ',');
 
-    // Remove empty rulesets
-    output = output.replace(/[^{}]+\{\}/g, '');
-  }
+  // Strip whitespace AFTER colon only (preserves descendant pseudo-selectors like ".parent :hover")
+  safe = safe.replace(/:\s+/g, ':');
 
-  // 3. Shorten hex colors (#ffffff -> #fff)
-  if (options.cssShortenHexColors !== false) {
-    output = output.replace(/#([a-fA-F0-9])\1([a-fA-F0-9])\2([a-fA-F0-9])\3\b/g, '#$1$2$3');
-  }
+  // Strip trailing semicolons right before closing brace
+  safe = safe.replace(/;\}/g, '}');
 
-  // 4. Remove zero units (0px -> 0)
-  if (options.cssRemoveZeroUnits !== false) {
-    output = output.replace(/(^|[ :])0(px|em|rem|%|in|cm|mm|pt|pc)\b/gi, '$10');
-  }
+  // Remove empty rulesets safely (only simple non-nested empty blocks)
+  safe = safe.replace(/[^{}@]+\{\}/g, '');
 
-  return output.trim();
+  // Shorten 6-digit hex colors (#ffffff -> #fff) when all 3 pairs match
+  safe = safe.replace(/#([a-fA-F0-9])\1([a-fA-F0-9])\2([a-fA-F0-9])\3(?![a-fA-F0-9])/g, '#$1$2$3');
+
+  // Restore preserved strings and url(...) values
+  safe = safe.replace(/__CG_CSS_TOK_(\d+)__/g, (_, idx) => tokens[Number(idx)] ?? '');
+
+  return safe.trim();
 }
 
 /**
- * Beautifies / Formats CSS source code for maximum human readability.
+ * Safely minifies plain CSS sections inside Blogger <b:skin> while keeping
+ * <Variable>, <Group>, and <b:...> directives intact.
  */
-export function beautifyCss(css: string, indentSize = 2): string {
-  const indent = ' '.repeat(indentSize);
-  let formatted = '';
-  let level = 0;
-
-  // Clean raw CSS
-  const cleaned = css
-    .replace(/\s+/g, ' ')
-    .replace(/\s*\{\s*/g, ' {\n')
-    .replace(/\s*\}\s*/g, '\n}\n')
-    .replace(/\s*;\s*/g, ';\n')
-    .replace(/\s*,\s*/g, ', ');
-
-  const lines = cleaned.split('\n');
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    if (line.includes('}')) {
-      level = Math.max(0, level - 1);
+export function minifyBloggerSkinWithDirectives(skinContent: string): string {
+  const directives: string[] = [];
+  let safe = skinContent.replace(
+    /(<(?:Variable|Group|b:[a-zA-Z0-9_-]+)\b[^>]*>|<\/(?:Group|b:[a-zA-Z0-9_-]+)>)/gi,
+    (match) => {
+      const token = `/*__CG_B_DIR_${directives.length}__*/`;
+      directives.push(match);
+      return token;
     }
+  );
 
-    const currentIndent = indent.repeat(level);
+  // Strip non-directive comments carefully (ignoring /*! and /*__CG_B_DIR_)
+  safe = safe.replace(/\/\*(?!\!|__CG_B_DIR_)[\s\S]*?\*\//g, '');
+  safe = safe.replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 
-    if (line.includes('{')) {
-      formatted += (formatted.length > 0 && !formatted.endsWith('\n\n') ? '\n' : '') + currentIndent + line + '\n';
-      level++;
-    } else if (line === '}') {
-      formatted += currentIndent + line + '\n';
-    } else {
-      formatted += currentIndent + line + '\n';
-    }
-  }
-
-  return formatted.trim();
+  // Restore directives on their own clean lines
+  safe = safe.replace(/\/\*__CG_B_DIR_(\d+)__\*\//g, (_, idx) => `\n${directives[Number(idx)] ?? ''}\n`);
+  return safe.replace(/\n{3,}/g, '\n\n').trim();
 }

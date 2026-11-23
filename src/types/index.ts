@@ -1,36 +1,20 @@
 export type CodeFormat = 'html' | 'blogger';
 
-export interface SecureOptions {
-  // HTML Options
-  htmlMinifyWhitespace: boolean;
-  htmlRemoveComments: boolean;
-  htmlMinifyInlineCss: boolean;
-  htmlMinifyInlineJs: boolean;
-  htmlProtectContainer: boolean;
+export type StringArrayEncodingType = 'rc4' | 'base64' | 'none';
 
-  // JavaScript Options (used for inline scripts)
-  jsMinifyWhitespace?: boolean;
-  jsRemoveComments?: boolean;
-
-  // CSS Options (used for inline styles / Blogger skin)
-  cssMinifyWhitespace?: boolean;
-  cssRemoveComments?: boolean;
-  cssShortenHexColors?: boolean;
-  cssRemoveZeroUnits?: boolean;
-
-  // Blogger XML Options
-  bloggerValidateXml: boolean;
-  bloggerMinifyWhitespace: boolean;
-  bloggerMinifyCdataCss: boolean;
-  bloggerProtectTags: boolean;
+export interface SecuritySettings {
+  stringArrayEncoding: StringArrayEncodingType;
+  selfDefending: boolean;
+  disableConsoleOutput: boolean;
+  domainLock: string;
+  allowBloggerPreview: boolean;
+  hideCssAndHtmlInJs: boolean;
+  antiInspectAndCopy: boolean;
 }
 
-export interface RestoreOptions {
-  beautifyOnly: boolean;
-  deescapeHex: boolean;
-  deescapeUnicode: boolean;
-  resolveStringArrays: boolean;
-  indentSize: number;
+export interface ProcessingProgress {
+  stage: string;
+  percent: number;
 }
 
 export interface ProcessingStats {
@@ -38,16 +22,37 @@ export interface ProcessingStats {
   processedSize: number;
   reductionPercentage: number;
   durationMs: number;
-  detectedFormat?: CodeFormat;
+  format: CodeFormat;
   timestamp: string;
+  scriptsObfuscated: number;
+  cssHidden: boolean;
+  htmlHidden: boolean;
+  domainLockActive: boolean;
+}
+
+export interface RestoreOptions {
+  beautifyOnly: boolean;
+  deescapeHex: boolean;
+  deescapeUnicode: boolean;
+  decodeBase64AndUnescape: boolean;
+  indentSize: number;
 }
 
 export interface RestoreStats {
   originalSize: number;
   restoredSize: number;
-  stringsDecoded: number;
-  formatApplied: CodeFormat;
+  itemsDecoded: number;
+  formatApplied: CodeFormat | 'javascript' | 'css';
   durationMs: number;
+}
+
+export interface BackupEntry {
+  id: string;
+  timestamp: number;
+  format: CodeFormat;
+  size: number;
+  code: string;
+  preview: string;
 }
 
 export type ActivePage =

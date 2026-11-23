@@ -10,7 +10,6 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       await navigator.clipboard.writeText(text);
       return true;
     } else {
-      // Fallback using temporary textarea
       const textArea = document.createElement('textarea');
       textArea.value = text;
       textArea.style.position = 'fixed';
@@ -23,8 +22,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
       document.body.removeChild(textArea);
       return successful;
     }
-  } catch (err) {
-    console.error('Clipboard copy failed:', err);
+  } catch {
     return false;
   }
 }
@@ -50,8 +48,7 @@ export function downloadFile(
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     return true;
-  } catch (err) {
-    console.error('File download failed:', err);
+  } catch {
     return false;
   }
 }
@@ -59,13 +56,16 @@ export function downloadFile(
 /**
  * Helper to get proper file extension and MIME type based on format.
  */
-export function getFormatFileInfo(format: CodeFormat, isBackup = false): { extension: string; mimeType: string } {
-  const prefix = isBackup ? 'backup_' : 'codegaurd_';
+export function getFormatFileInfo(format: CodeFormat | 'javascript' | 'css'): { extension: string; mimeType: string } {
   switch (format) {
     case 'html':
       return { extension: '.html', mimeType: 'text/html;charset=utf-8' };
     case 'blogger':
       return { extension: '.xml', mimeType: 'application/xml;charset=utf-8' };
+    case 'javascript':
+      return { extension: '.js', mimeType: 'text/javascript;charset=utf-8' };
+    case 'css':
+      return { extension: '.css', mimeType: 'text/css;charset=utf-8' };
     default:
       return { extension: '.txt', mimeType: 'text/plain;charset=utf-8' };
   }

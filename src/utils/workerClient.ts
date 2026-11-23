@@ -1,0 +1,64 @@
+import type { ObfuscatorOptions } from 'javascript-obfuscator';
+import type { WorkerObfuscateResponse } from '../workers/obfuscator.worker.ts';
+
+let sharedWorker: Worker | null = null;
+let nextRequestId = 1;
+
+interface PendingTask {
+  resolve: (code: string) => void;
+  reject: (err: Error) => void;
+}
+
+const pendingMap = new Map<number, PendingTask>();
+
+function getWorker(): Worker {
+  if (!sharedWorker) {
+    sharedWorker = new Worker(new URL('../workers/obfuscator.worker.ts', import.meta.url), {
+      type: 'module',
+    });
+
+    sharedWorker.onmessage = (event: MessageEvent<WorkerObfuscateResponse>) => {
+      const { id, ok, code, error } = event.data;
+      const task = pendingMap.get(id);
+      if (!task) return;
+      pendingMap.delete(id);
+
+      if (ok && typeof code === 'string') {
+        task.resolve(code);
+      } else {
+        task.reject(new Error(error || 'Obfuscation failed in Web Worker.'));
+      }
+    };
+
+    sharedWorker.onerror = (err) => {
+      const errorObj = new Error(err.message || 'Web Worker execution error.');
+      pendingMap.forEach((task) => task.reject(errorObj));
+      pendingMap.clear();
+      sharedWorker?.terminate();
+      sharedWorker = null;
+    };
+  }
+  return sharedWorker;
+}
+
+/**
+ * Runs javascript-obfuscator inside a dedicated Web Worker so large files
+ * (50KB-150KB+) never freeze the browser UI.
+ */
+export function obfuscateInWorker(code: string, options: ObfuscatorOptions): Promise<string> {
+  if (!code || !code.trim()) {
+    return Promise.resolve('');
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    const id = nextRequestId++;
+    pendingMap.set(id, { resolve, reject });
+    try {
+      const worker = getWorker();
+      worker.postMessage({ id, code, options });
+    } catch (err: unknown) {
+      pendingMap.delete(id);
+      reject(err instanceof Error ? err : new Error(String(err)));
+    }
+  });
+}

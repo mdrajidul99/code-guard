@@ -1,97 +1,71 @@
 /**
- * AppShield - Comprehensive Client-Side Security Protection for CodeGaurd
- * Protects this website against source code theft, DevTools inspection,
- * right-click scraping, and keyboard shortcut exploits.
+ * AppShield - Client-Side Protection for CodeGuard Web App
+ * Blocks Right-Click and DevTools shortcuts (F12, Ctrl+U, Ctrl+S, Ctrl+Shift+I/J/C)
+ * while preserving Paste (Ctrl+V), Select All (Ctrl+A), Copy (Ctrl+C), and context menus
+ * inside INPUT, TEXTAREA, SELECT, and contenteditable code editors.
  */
 
 export function initAppShield(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
-  // 1. Prevent Right-Click Context Menu (except on standard text inputs/textareas if needed)
-  window.addEventListener('contextmenu', (e: MouseEvent) => {
-    const target = e.target as HTMLElement | null;
-    // Allow right click ONLY inside code editor textarea for paste convenience if desired,
-    // or block universally to prevent page inspect element
-    if (target && target.tagName === 'TEXTAREA') {
-      // Allow paste/copy in textarea
-      return;
+  const isEditableTarget = (target: EventTarget | null): boolean => {
+    const el = target as HTMLElement | null;
+    if (!el) return false;
+    const tag = el.tagName ? el.tagName.toUpperCase() : '';
+    if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') {
+      return true;
     }
-    e.preventDefault();
-  }, { capture: true });
-
-  // 2. Prevent Common DevTools & View-Source Keyboard Shortcuts
-  window.addEventListener('keydown', (e: KeyboardEvent) => {
-    const key = e.key.toUpperCase();
-    const isCtrlOrMeta = e.ctrlKey || e.metaKey;
-
-    // F12 -> Developer Tools
-    if (e.key === 'F12') {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
+    if (el.isContentEditable) return true;
+    if (typeof el.closest === 'function' && el.closest('textarea, input, select, [contenteditable="true"]')) {
+      return true;
     }
-
-    // Ctrl+Shift+I or Cmd+Option+I -> Inspect Element
-    if (isCtrlOrMeta && e.shiftKey && (key === 'I' || key === 'J' || key === 'C')) {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    }
-
-    // Ctrl+U or Cmd+U -> View Source
-    if (isCtrlOrMeta && key === 'U') {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    }
-
-    // Ctrl+S or Cmd+S -> Save Webpage
-    if (isCtrlOrMeta && key === 'S') {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    }
-  }, { capture: true });
-
-  // 3. Anti-Debugging Trap (Halts DevTools if opened)
-  const startDebuggerTrap = () => {
-    setInterval(() => {
-      const startTime = performance.now();
-      // Debugger statement inside dynamic function constructor
-      try {
-        (function() {}).constructor('debugger')();
-      } catch {
-        // Suppress
-      }
-      const duration = performance.now() - startTime;
-      // If DevTools was paused on debugger for more than 100ms
-      if (duration > 100) {
-        try {
-          console.clear();
-        } catch {
-          // Suppress
-        }
-      }
-    }, 1500);
+    return false;
   };
 
-  // Start trap safely in production
-  try {
-    startDebuggerTrap();
-  } catch {
-    // Ignore in unsupported environments
-  }
+  // 1. Block Right-Click except inside editable code inputs/textareas
+  window.addEventListener(
+    'contextmenu',
+    (e: MouseEvent) => {
+      if (isEditableTarget(e.target)) {
+        return;
+      }
+      e.preventDefault();
+    },
+    { capture: true }
+  );
 
-  // 4. Console Sanitizer (Clear console and suppress logging)
-  try {
-    const noop = () => {};
-    // Keep error suppressed from scrapers
-    if (window.console && process.env.NODE_ENV === 'production') {
-      window.console.log = noop;
-      window.console.info = noop;
-      window.console.debug = noop;
-    }
-  } catch {
-    // Suppress
-  }
+  // 2. Block DevTools / View-Source / Save shortcuts while keeping Ctrl+A / Ctrl+C / Ctrl+V / Ctrl+X in editors
+  window.addEventListener(
+    'keydown',
+    (e: KeyboardEvent) => {
+      const key = (e.key || '').toUpperCase();
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+
+      // Always allow standard clipboard & select-all inside editable targets
+      if (isEditableTarget(e.target) && isCtrlOrMeta && !e.shiftKey && ['A', 'C', 'V', 'X', 'Z', 'Y'].includes(key)) {
+        return;
+      }
+
+      // Block F12
+      if (e.key === 'F12' || e.keyCode === 123) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      // Block Ctrl+Shift+I / J / C / K (DevTools / Inspector / Console)
+      if (isCtrlOrMeta && e.shiftKey && ['I', 'J', 'C', 'K'].includes(key)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      // Block Ctrl+U (View Source) and Ctrl+S (Save Webpage)
+      if (isCtrlOrMeta && !e.shiftKey && (key === 'U' || key === 'S')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    { capture: true }
+  );
 }

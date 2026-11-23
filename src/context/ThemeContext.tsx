@@ -17,7 +17,7 @@ const ThemeContext = createContext<ThemeContextType>({
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
-      const saved = localStorage.getItem('codegaurd_theme');
+      const saved = localStorage.getItem('codeguard_theme') || localStorage.getItem('codegaurd_theme');
       if (saved === 'light' || saved === 'dark') return saved;
       return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     } catch {
@@ -27,7 +27,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     try {
-      localStorage.setItem('codegaurd_theme', theme);
+      localStorage.setItem('codeguard_theme', theme);
     } catch {
       // Storage unavailable
     }
