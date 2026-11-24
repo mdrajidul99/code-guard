@@ -216,7 +216,7 @@ export async function processHtmlDocument(
         const cleanStaticHtml = bodyInner.replace(/\s+/g, ' ').trim();
         let htmlMountPart = '';
         if (cleanStaticHtml) {
-          const mountJs = `(function(){var m=document.getElementById('cg-app-mount');if(m){m.innerHTML=${JSON.stringify(cleanStaticHtml)};}})();`;
+          const mountJs = `(function(){function _a(){var m=document.getElementById('cg-app-mount');if(m&&!m.dataset.cgMounted){m.innerHTML=${JSON.stringify(cleanStaticHtml)};m.dataset.cgMounted='1';}}_a();if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_a);}})();`;
           const obfMount = sanitizeObfuscatedTagBoundaries(await obfuscateInWorker(mountJs, obfOptions));
           htmlMountPart = `<div id="cg-app-mount"></div>\n<script>${obfMount}</script>`;
           htmlHidden = true;
@@ -262,7 +262,7 @@ export async function processHtmlDocument(
       const cleanFragmentHtml = fragmentHtml.replace(/\s+/g, ' ').trim();
       let mountPart = '';
       if (cleanFragmentHtml) {
-        const mountJs = `(function(){var m=document.getElementById('cg-app-mount');if(m){m.innerHTML=${JSON.stringify(cleanFragmentHtml)};}})();`;
+        const mountJs = `(function(){function _a(){var m=document.getElementById('cg-app-mount');if(m&&!m.dataset.cgMounted){m.innerHTML=${JSON.stringify(cleanFragmentHtml)};m.dataset.cgMounted='1';}}_a();if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_a);}})();`;
         const obfMount = sanitizeObfuscatedTagBoundaries(await obfuscateInWorker(mountJs, obfOptions));
         mountPart = `<div id="cg-app-mount"></div>\n<script>${obfMount}</script>`;
         htmlHidden = true;

@@ -572,6 +572,74 @@ export async function processBloggerXml(
     }
   }
 
+/**
+ * Finds the exact insertion offset inside <body> right after all HTML/Blogger markup
+ * (including all mount containers) and immediately before any trailing <script>
+ * or <script type='module'> tags at the bottom of <body>.
+ */
+function findTrailingScriptsStartIndex(bodyInner: string): number {
+  let pos = 0;
+  const len = bodyInner.length;
+  let lastNonScriptEnd = 0;
+
+  while (pos < len) {
+    if (/\s/.test(bodyInner[pos])) {
+      while (pos < len && /\s/.test(bodyInner[pos])) pos++;
+      continue;
+    }
+
+    if (bodyInner.startsWith('<!--', pos)) {
+      const cEnd = bodyInner.indexOf('-->', pos + 4);
+      pos = cEnd === -1 ? len : cEnd + 3;
+      continue;
+    }
+
+    const tokenMatch = /^__CG_XML_SCRIPT_\d+__/.exec(bodyInner.slice(pos));
+    if (tokenMatch) {
+      pos += tokenMatch[0].length;
+      continue;
+    }
+
+    if (/^<script(?=[\s/>])/i.test(bodyInner.slice(pos))) {
+      const tagEnd = findTagEnd(bodyInner, pos);
+      if (tagEnd) {
+        if (tagEnd.isSelfClosing) {
+          pos = tagEnd.endIdx;
+          continue;
+        }
+        const closeInfo = findMatchingCloseTag(bodyInner, tagEnd.endIdx, 'script');
+        if (closeInfo) {
+          pos = closeInfo.afterCloseIdx;
+          continue;
+        }
+        pos = tagEnd.endIdx;
+        continue;
+      }
+    }
+
+    if (bodyInner.startsWith('<![CDATA[', pos)) {
+      const cdEnd = bodyInner.indexOf(']]>', pos + 9);
+      pos = cdEnd === -1 ? len : cdEnd + 3;
+      lastNonScriptEnd = pos;
+      continue;
+    }
+
+    if (bodyInner[pos] === '<') {
+      const tagEnd = findTagEnd(bodyInner, pos);
+      if (tagEnd) {
+        pos = tagEnd.endIdx;
+        lastNonScriptEnd = pos;
+        continue;
+      }
+    }
+
+    pos++;
+    lastNonScriptEnd = pos;
+  }
+
+  return lastNonScriptEnd;
+}
+
   // --- STEP 3: Hide Static HTML Blocks (Header, Footer, Modals, Static Homepage Sections) -> ONE combined UI Mount script ---
   let combinedUiMountXml = '';
   if (settings.hideCssAndHtmlInJs) {
@@ -614,23 +682,20 @@ export async function processBloggerXml(
         scriptsObfuscated++;
       }
 
+      // Place combined UI mount script strictly inside <body>: after all DOM mount containers
+      // and immediately before trailing <script> / <script type='module'> blocks (or before </body>).
+      let finalBodyInner = strippedBody;
+      if (combinedUiMountXml) {
+        const insertIdx = findTrailingScriptsStartIndex(strippedBody);
+        const beforePart = strippedBody.slice(0, insertIdx).replace(/\s+$/, '');
+        const afterPart = strippedBody.slice(insertIdx).replace(/^\s+/, '');
+        finalBodyInner = [beforePart, combinedUiMountXml, afterPart].filter(Boolean).join('\n');
+      }
+
       working =
         working.slice(0, bodyMatch.index) +
-        `${bodyMatch[1]}${strippedBody}${bodyMatch[3]}` +
+        `${bodyMatch[1]}${finalBodyInner}${bodyMatch[3]}` +
         working.slice(bodyMatch.index + bodyMatch[0].length);
-    }
-  }
-
-  // Place combined UI mount script right BEFORE the first <script type='module'> token (or before </body>)
-  // so every mount target in DOM above module script is hydrated before module script runs!
-  if (combinedUiMountXml) {
-    const firstModuleSlot = scriptSlots.find((s) => s.isModule && working.includes(s.token));
-    if (firstModuleSlot) {
-      working = working.replace(firstModuleSlot.token, () => `${combinedUiMountXml}\n${firstModuleSlot.token}`);
-    } else if (/<\/body>/i.test(working)) {
-      working = working.replace(/<\/body>/i, () => `${combinedUiMountXml}\n</body>`);
-    } else {
-      working = `${working}\n${combinedUiMountXml}`;
     }
   }
 
