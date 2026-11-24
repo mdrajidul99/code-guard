@@ -1,14 +1,33 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig, type Plugin} from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import JavaScriptObfuscator from 'javascript-obfuscator';
+import { protectNonAsciiWithUtf8Helper } from './src/utils/utf8Guard.ts';
+
+const BUILD_OBFUSCATOR_EXCLUDES: RegExp[] = [
+  /worker/i,
+  /obfuscator/i,
+  /javascript-obfuscator/i,
+  /node_modules[\\/]+javascript-obfuscator/i,
+  /acorn/i,
+  /vendor/i,
+];
+
+function isExcludedChunk(fileName: string, moduleIds: string[]): boolean {
+  if (BUILD_OBFUSCATOR_EXCLUDES.some((re) => re.test(fileName))) {
+    return true;
+  }
+  return moduleIds.some((id) =>
+    /node_modules[\\/]+(?:javascript-obfuscator|acorn)|obfuscator-worker|restore-sandbox-worker/i.test(id)
+  );
+}
 
 /**
  * Production self-protection plugin for CodeGuard.
- * Obfuscates CodeGuard's main compiled app JS chunks using RC4, Control Flow Flattening,
- * Self-Defending, and Disable Console Output while skipping Web Worker bundles
- * (which contain the javascript-obfuscator engine itself) and keeping safety flags false.
+ * Obfuscates ONLY CodeGuard's own compiled app UI chunk (after pure-ASCII UTF-8 guarding)
+ * using RC4, Control Flow Flattening, Self-Defending, and Disable Console Output while
+ * strictly excluding Web Workers, javascript-obfuscator, acorn, and node_modules vendor chunks.
  */
 function codeGuardBuildObfuscator(): Plugin {
   return {
@@ -18,11 +37,14 @@ function codeGuardBuildObfuscator(): Plugin {
     generateBundle(_options, bundle) {
       for (const [fileName, chunk] of Object.entries(bundle)) {
         if (chunk.type !== 'chunk') continue;
-        // Skip Web Worker bundles so javascript-obfuscator isn't obfuscated inside the worker
-        if (/worker/i.test(fileName) || /obfuscator/i.test(fileName)) continue;
         if (!fileName.endsWith('.js')) continue;
 
-        const result = JavaScriptObfuscator.obfuscate(chunk.code, {
+        const moduleIds = chunk.moduleIds || Object.keys(chunk.modules || {});
+        if (isExcludedChunk(fileName, moduleIds)) continue;
+
+        const asciiSafeCode = protectNonAsciiWithUtf8Helper(chunk.code);
+
+        const result = JavaScriptObfuscator.obfuscate(asciiSafeCode, {
           compact: true,
           simplify: true,
           target: 'browser',
@@ -80,6 +102,24 @@ export default defineConfig(() => {
         },
       },
     ],
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              {
+                name: 'obfuscator-vendor',
+                test: /node_modules[\\/](?:javascript-obfuscator|acorn)/,
+              },
+              {
+                name: 'vendor',
+                test: /node_modules/,
+              },
+            ],
+          },
+        },
+      },
+    },
     optimizeDeps: {
       exclude: ['javascript-obfuscator'],
     },
@@ -88,7 +128,7 @@ export default defineConfig(() => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {

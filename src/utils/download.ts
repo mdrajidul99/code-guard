@@ -33,12 +33,12 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 export function downloadFile(
   content: string,
   filename: string,
-  mimeType: string = 'text/plain;charset=utf-8'
+  _mimeType: string = 'text/plain;charset=utf-8'
 ): boolean {
   if (!content) return false;
   try {
     const sanitizedName = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const blob = new Blob([content], { type: mimeType });
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -54,18 +54,18 @@ export function downloadFile(
 }
 
 /**
- * Helper to get proper file extension and MIME type based on format.
+ * Helper to get proper file extension and UTF-8 safe MIME type based on format.
  */
 export function getFormatFileInfo(format: CodeFormat | 'javascript' | 'css'): { extension: string; mimeType: string } {
   switch (format) {
     case 'html':
-      return { extension: '.html', mimeType: 'text/html;charset=utf-8' };
+      return { extension: '.html', mimeType: 'text/plain;charset=utf-8' };
     case 'blogger':
-      return { extension: '.xml', mimeType: 'application/xml;charset=utf-8' };
+      return { extension: '.xml', mimeType: 'text/plain;charset=utf-8' };
     case 'javascript':
-      return { extension: '.js', mimeType: 'text/javascript;charset=utf-8' };
+      return { extension: '.js', mimeType: 'text/plain;charset=utf-8' };
     case 'css':
-      return { extension: '.css', mimeType: 'text/css;charset=utf-8' };
+      return { extension: '.css', mimeType: 'text/plain;charset=utf-8' };
     default:
       return { extension: '.txt', mimeType: 'text/plain;charset=utf-8' };
   }

@@ -1,4 +1,5 @@
 import type { ObfuscatorOptions } from 'javascript-obfuscator';
+import { protectNonAsciiWithUtf8Helper } from './utf8Guard.ts';
 
 export interface WorkerObfuscateResponse {
   id: number;
@@ -53,18 +54,22 @@ function getWorker(): Worker {
 /**
  * Runs javascript-obfuscator inside a dedicated classic Web Worker so large files
  * (50KB-150KB+) never freeze the browser UI and avoid ESM strict-mode UMD issues.
+ * Protects all non-ASCII (Bengali / Unicode / Emoji) strings via pure-ASCII Base64
+ * (`_cgU8`) prior to obfuscation so RC4/Split Strings never corrupt UTF-8 bytes.
  */
 export function obfuscateInWorker(code: string, options: ObfuscatorOptions): Promise<string> {
   if (!code || !code.trim()) {
     return Promise.resolve('');
   }
 
+  const protectedCode = protectNonAsciiWithUtf8Helper(code);
+
   return new Promise<string>((resolve, reject) => {
     const id = nextRequestId++;
     pendingMap.set(id, { resolve, reject });
     try {
       const worker = getWorker();
-      worker.postMessage({ id, code, options });
+      worker.postMessage({ id, code: protectedCode, options });
     } catch (err: unknown) {
       pendingMap.delete(id);
       reject(err instanceof Error ? err : new Error(String(err)));

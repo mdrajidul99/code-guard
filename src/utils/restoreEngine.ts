@@ -3,6 +3,7 @@ import { CodeFormat, RestoreOptions, RestoreResult } from '../types/index.ts';
 import { validateBloggerXml } from './bloggerEngine.ts';
 import { findVaultMatch } from './vaultStorage.ts';
 import { runRestoreSandboxWorker } from './restoreSandboxClient.ts';
+import { decodeUtf8HelperCalls } from './utf8Guard.ts';
 
 type TargetFormat = CodeFormat | 'javascript' | 'css';
 
@@ -600,7 +601,7 @@ function staticReconstructInjectors(scripts: string[], mountIds: string[]) {
   const injectorScriptIndexes: number[] = [];
 
   for (let idx = 0; idx < scripts.length; idx++) {
-    const code = scripts[idx];
+    const code = decodeUtf8HelperCalls(scripts[idx]).result;
     let hit = false;
 
     // 1. style.textContent / style.innerHTML = "..."
@@ -1180,6 +1181,12 @@ export async function restoreCode(
       if (charRes.count > 0) {
         currentCode = charRes.result;
         passChanges += charRes.count;
+      }
+
+      const cgU8Res = decodeUtf8HelperCalls(currentCode);
+      if (cgU8Res.count > 0) {
+        currentCode = cgU8Res.result;
+        passChanges += cgU8Res.count;
       }
 
       const strongLocked = detectStrongObfuscation(currentCode);
