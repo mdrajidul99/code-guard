@@ -84,24 +84,11 @@ function codeGuardBuildObfuscator(): Plugin {
 
 export default defineConfig(() => {
   return {
-    base: '/code-guard/',
+    base: '/',
     plugins: [
       react(),
       tailwindcss(),
       codeGuardBuildObfuscator(),
-      {
-        name: 'root-redirect-for-dev',
-        configureServer(server) {
-          server.middlewares.use((req, res, next) => {
-            if (req.url === '/' || req.url === '') {
-              res.writeHead(302, { Location: '/code-guard/' });
-              res.end();
-              return;
-            }
-            next();
-          });
-        },
-      },
     ],
     build: {
       rolldownOptions: {
