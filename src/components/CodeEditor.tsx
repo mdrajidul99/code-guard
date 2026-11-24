@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Copy, Check, Download, ClipboardPaste, Trash2, FileText, Code2, ShieldAlert } from 'lucide-react';
+import { Copy, Check, Download, ClipboardPaste, Trash2, FileText, Code2, ShieldAlert, Upload } from 'lucide-react';
 import { copyToClipboard, downloadFile, getFormatFileInfo } from '../utils/download.ts';
 import { CodeFormat } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -32,13 +32,87 @@ export const CodeEditor: React.FC<Props> = ({
   const { lang } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const effectivePlaceholder =
     placeholder || (lang === 'bn' ? 'এখানে আপনার কোড পেস্ট বা টাইপ করুন...' : 'Paste or type your code here...');
 
   const lines = value ? value.split('\n').length : 1;
   const chars = value.length;
+
+  const showToast = (msg: string, duration = 2400) => {
+    setDownloadNotice(msg);
+    setTimeout(() => setDownloadNotice(null), duration);
+  };
+
+  const processImportedFile = async (file: File) => {
+    const extMatch = /\.([a-z0-9]+)$/i.exec(file.name.trim());
+    const ext = extMatch ? extMatch[1].toLowerCase() : '';
+    const allowedExts = new Set(['txt', 'xml', 'html', 'htm']);
+
+    if (!allowedExts.has(ext)) {
+      showToast(
+        lang === 'bn'
+          ? 'শুধুমাত্র .txt, .xml বা .html ফাইল ইমপোর্ট করা যাবে'
+          : 'Only .txt, .xml, or .html files are supported',
+        3000
+      );
+      return;
+    }
+
+    try {
+      const content = await file.text();
+      if (onChange) {
+        onChange(content);
+      }
+      showToast(
+        lang === 'bn'
+          ? `ফাইল ইমপোর্ট হয়েছে: ${file.name} (${(content.length / 1024).toFixed(1)} KB)`
+          : `Imported: ${file.name} (${(content.length / 1024).toFixed(1)} KB)`
+      );
+    } catch {
+      showToast(
+        lang === 'bn' ? 'ফাইলটি পড়তে সমস্যা হয়েছে' : 'Failed to read selected file',
+        2600
+      );
+    }
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) {
+      await processImportedFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (readOnly) return;
+    if (e.dataTransfer?.types?.includes('Files')) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isDraggingFile) setIsDraggingFile(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    if (readOnly) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    if (readOnly) return;
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingFile(false);
+    await processImportedFile(file);
+  };
 
   const handleCopy = async () => {
     if (!value) return;
@@ -141,6 +215,32 @@ export const CodeEditor: React.FC<Props> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1.5 flex-wrap">
+          {!readOnly && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.xml,.html,.htm,text/plain,text/xml,application/xml,text/html"
+                onChange={handleFileInputChange}
+                className="hidden"
+                aria-hidden="true"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-2.5 py-1.5 rounded border border-cyan-500/40 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-800 dark:text-cyan-200 transition-colors flex items-center gap-1 font-medium whitespace-nowrap shrink-0 cursor-pointer"
+                title={
+                  lang === 'bn'
+                    ? '.txt, .xml বা .html ফাইল ইমপোর্ট করুন'
+                    : 'Import .txt, .xml, or .html file'
+                }
+              >
+                <Upload className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                <span>{lang === 'bn' ? 'ফাইল ইমপোর্ট' : 'Import File'}</span>
+              </button>
+            </>
+          )}
+
           {!readOnly && onLoadSample && (
             <button
               type="button"
@@ -232,7 +332,14 @@ export const CodeEditor: React.FC<Props> = ({
       </div>
 
       {/* Editor Body */}
-      <div className="relative flex-1 flex flex-col w-full min-h-[360px] sm:min-h-[420px] bg-slate-50 dark:bg-slate-950/95 font-mono text-xs sm:text-sm overflow-hidden">
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`relative flex-1 flex flex-col w-full min-h-[360px] sm:min-h-[420px] bg-slate-50 dark:bg-slate-950/95 font-mono text-xs sm:text-sm overflow-hidden transition-colors ${
+          isDraggingFile ? 'ring-2 ring-inset ring-cyan-500 bg-cyan-50/40 dark:bg-cyan-950/30' : ''
+        }`}
+      >
         <textarea
           ref={textareaRef}
           value={value}
@@ -244,6 +351,19 @@ export const CodeEditor: React.FC<Props> = ({
           className="w-full flex-1 block min-h-[360px] sm:min-h-[420px] p-4 bg-transparent text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-y focus:outline-none font-mono text-xs sm:text-sm leading-relaxed selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-200 whitespace-pre-wrap break-words"
           style={{ tabSize: 2 }}
         />
+
+        {isDraggingFile && !readOnly && (
+          <div className="absolute inset-0 bg-cyan-600/10 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+            <div className="px-4 py-2.5 rounded-lg bg-white dark:bg-slate-900 border border-cyan-500 shadow-lg text-xs font-sans font-semibold text-cyan-700 dark:text-cyan-300 flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              <span>
+                {lang === 'bn'
+                  ? 'ফাইল এখানে ছেড়ে দিন (.txt, .xml, .html)'
+                  : 'Drop file here to import (.txt, .xml, .html)'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {downloadNotice && (
           <div className="absolute bottom-4 right-4 px-3 py-1.5 rounded-lg bg-cyan-600 text-white font-sans text-xs shadow-lg flex items-center gap-1.5 pointer-events-none">
