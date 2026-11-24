@@ -222,17 +222,42 @@ export function protectNonAsciiWithUtf8Helper(code: string): string {
     out = out.slice(0, rep.start) + rep.text + out.slice(rep.end);
   }
 
-  // Avoid duplicate helper insertion if code already defines _cgU8
-  if (/\b_cgU8\s*=/.test(out)) {
+  // Check AST top-level statements (never string literals) for an existing _cgU8 declaration
+  const body = Array.isArray(ast.body) ? (ast.body as AstNodeLike[]) : [];
+  const hasTopLevelCgU8 = body.some((stmt) => {
+    if (stmt.type === 'FunctionDeclaration') {
+      const id = stmt.id as AstNodeLike | undefined;
+      return id?.name === '_cgU8';
+    }
+    if (stmt.type === 'VariableDeclaration' && Array.isArray(stmt.declarations)) {
+      return (stmt.declarations as AstNodeLike[]).some((d) => {
+        const id = d.id as AstNodeLike | undefined;
+        return id?.name === '_cgU8';
+      });
+    }
+    return false;
+  });
+
+  if (hasTopLevelCgU8) {
     return out;
   }
 
-  // Preserve leading 'use strict'; directive prologue if present
-  const body = Array.isArray(ast.body) ? (ast.body as AstNodeLike[]) : [];
-  if (body.length > 0 && body[0].type === 'ExpressionStatement' && typeof body[0].directive === 'string') {
-    const directiveEnd = body[0].end;
-    // Note: directive was skipped during replacements, so its end offset is unchanged
-    return `${out.slice(0, directiveEnd)}\n${CG_U8_HELPER}\n${out.slice(directiveEnd)}`;
+  // Insert helper AFTER leading directive prologues ('use strict') and ESM ImportDeclarations.
+  // Neither directives nor ImportDeclarations are modified by replacements, so their AST offsets stay exact.
+  let helperInsertPos = 0;
+  for (const stmt of body) {
+    if (
+      (stmt.type === 'ExpressionStatement' && typeof stmt.directive === 'string') ||
+      stmt.type === 'ImportDeclaration'
+    ) {
+      helperInsertPos = stmt.end;
+    } else {
+      break;
+    }
+  }
+
+  if (helperInsertPos > 0) {
+    return `${out.slice(0, helperInsertPos)}\n${CG_U8_HELPER}\n${out.slice(helperInsertPos)}`;
   }
 
   return `${CG_U8_HELPER}\n${out}`;

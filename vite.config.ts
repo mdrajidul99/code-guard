@@ -26,8 +26,10 @@ function isExcludedChunk(fileName: string, moduleIds: string[]): boolean {
 /**
  * Production self-protection plugin for CodeGuard.
  * Obfuscates ONLY CodeGuard's own compiled app UI chunk (after pure-ASCII UTF-8 guarding)
- * using RC4, Control Flow Flattening, Self-Defending, and Disable Console Output while
- * strictly excluding Web Workers, javascript-obfuscator, acorn, and node_modules vendor chunks.
+ * using RC4 string array encryption, splitStrings, numbersToExpressions, and Disable Console Output
+ * while keeping selfDefending, controlFlowFlattening, renameGlobals, and renameProperties FALSE
+ * so the React/Vite bundle mounts reliably on GitHub Pages, and strictly excluding Web Workers,
+ * javascript-obfuscator, acorn, and node_modules vendor chunks.
  */
 function codeGuardBuildObfuscator(): Plugin {
   return {
@@ -62,12 +64,11 @@ function codeGuardBuildObfuscator(): Plugin {
           splitStrings: true,
           splitStringsChunkLength: 10,
           numbersToExpressions: true,
-          controlFlowFlattening: true,
-          controlFlowFlatteningThreshold: 0.75,
-          selfDefending: true,
           disableConsoleOutput: true,
           ignoreImports: true,
-          // Mandatory safety flags — remain false
+          // Mandatory safety flags — remain false so React/Vite mount never breaks on GitHub Pages
+          controlFlowFlattening: false,
+          selfDefending: false,
           renameGlobals: false,
           renameProperties: false,
           transformObjectKeys: false,
