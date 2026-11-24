@@ -10,6 +10,7 @@ import { restoreCode } from '../utils/restoreEngine.ts';
 import { getStoredBackups } from '../utils/backupStorage.ts';
 import { downloadFile, getFormatFileInfo } from '../utils/download.ts';
 import { CodeEditor } from '../components/CodeEditor.tsx';
+import { useLanguage } from '../context/LanguageContext.tsx';
 import {
   RotateCcw,
   Sparkles,
@@ -24,9 +25,7 @@ import {
   X,
 } from 'lucide-react';
 
-type RestoreFormat = CodeFormat | 'javascript' | 'css';
-
-const RESTORE_SAMPLES: Record<RestoreFormat, string> = {
+const RESTORE_SAMPLES: Record<CodeFormat, string> = {
   html: `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -66,10 +65,6 @@ const RESTORE_SAMPLES: Record<RestoreFormat, string> = {
   </script>
 </body>
 </html>`,
-
-  javascript: `eval(function(p,a,c,k,e,d){e=function(c){return c.toString(36)};if(!''.replace(/^/,String)){while(c--){d[c.toString(a)]=k[c]||c.toString(a)}k=[function(e){return d[e]}];e=function(){return'\\\\w+'};c=1};while(c--){if(k[c]){p=p.replace(new RegExp('\\\\b'+e(c)+'\\\\b','g'),k[c])}}return p}('0 1(2){3"4, "+2+"!"}5.6(1("7"));',8,8,'function|greetUser|name|return|Hello|console|log|CodeGuard'.split('|'),0,{}))`,
-
-  css: `:root{--bg:#0f172a;--fg:#f8fafc;}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);}@media(min-width:768px){.card{padding:24px;}}`,
 };
 
 interface RestoreViewProps {
@@ -78,9 +73,12 @@ interface RestoreViewProps {
 }
 
 export const RestoreView: React.FC<RestoreViewProps> = () => {
+  const { lang } = useLanguage();
+  const isBn = lang === 'bn';
+
   const [sourceCode, setSourceCode] = useState<string>('');
   const [restoredCode, setRestoredCode] = useState<string>('');
-  const [format, setFormat] = useState<RestoreFormat>('html');
+  const [format, setFormat] = useState<CodeFormat>('html');
   const [options] = useState<RestoreOptions>({
     beautifyOnly: false,
     indentSize: 2,
@@ -109,7 +107,7 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
     setShowLivePreview(false);
   };
 
-  const handleLoadSample = (targetFormat?: RestoreFormat) => {
+  const handleLoadSample = (targetFormat?: CodeFormat) => {
     const fmt = targetFormat || format;
     setSourceCode(RESTORE_SAMPLES[fmt] || RESTORE_SAMPLES.html);
     setErrorMsg(null);
@@ -117,7 +115,11 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
 
   const handleExecuteRestore = async (beautifyOnly = false) => {
     if (!sourceCode.trim()) {
-      setErrorMsg('অনুগ্রহ করে ইনপুট বক্সে কোড পেস্ট করুন।');
+      setErrorMsg(
+        isBn
+          ? 'অনুগ্রহ করে ইনপুট বক্সে আপনার HTML বা Blogger XML কোড পেস্ট করুন।'
+          : 'Please paste your HTML or Blogger XML code into the input editor first.'
+      );
       return;
     }
 
@@ -136,7 +138,7 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
       setXmlValidationError(result.xmlValidationError);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setErrorMsg(`Restoration failed: ${msg}`);
+      setErrorMsg(isBn ? `রিস্টোর করতে সমস্যা হয়েছে: ${msg}` : `Restoration failed: ${msg}`);
       setRestoredCode('');
       setStats(null);
     } finally {
@@ -151,16 +153,14 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
   };
 
   const getPlaceholderText = () => {
-    switch (format) {
-      case 'html':
-        return 'Paste HTML or Web App code (encoded, minified, or messy) here...';
-      case 'blogger':
-        return 'Paste Blogger XML theme or widget code here...';
-      case 'javascript':
-        return 'Paste encoded, packed, or unformatted JavaScript code here...';
-      case 'css':
-        return 'Paste minified or unformatted CSS code here...';
+    if (format === 'html') {
+      return isBn
+        ? 'এখানে এনকোড করা, মিনিফাইড বা অগোছালো HTML / ওয়েব অ্যাপ কোড পেস্ট করুন...'
+        : 'Paste HTML or Web App code (encoded, minified, or messy) here...';
     }
+    return isBn
+      ? 'এখানে Blogger XML থিম বা উইজেট কোড পেস্ট করুন...'
+      : 'Paste Blogger XML theme or widget code here...';
   };
 
   return (
@@ -169,32 +169,36 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-            Restore, Decode &amp; Beautify Code
+            {isBn ? 'কোড রিস্টোর, ডিকোড ও বিউটিফাই' : 'Restore, Decode & Beautify Code'}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl">
-            Decode encoded scripts and cleanly restore or format your HTML, CSS, JavaScript, and Blogger XML code.
+            {isBn
+              ? 'এনকোড করা স্ক্রিপ্ট ডিকোড করুন এবং আপনার HTML ও Blogger XML কোড পরিচ্ছন্নভাবে রিস্টোর বা সাজিয়ে নিন।'
+              : 'Decode encoded scripts and cleanly restore or format your HTML Website, App, and Blogger XML code.'}
           </p>
         </div>
 
-        {/* Format Selector */}
+        {/* Format Selector (Only HTML & Blogger XML) */}
         <div className="flex items-center gap-2.5">
           <label htmlFor="cg-restore-format" className="text-xs font-semibold text-slate-700 dark:text-slate-300 shrink-0">
-            Select Format:
+            {isBn ? 'ফরম্যাট নির্বাচন:' : 'Select Format:'}
           </label>
           <select
             id="cg-restore-format"
             value={format}
             onChange={(e) => {
-              setFormat(e.target.value as RestoreFormat);
+              setFormat(e.target.value as CodeFormat);
               setErrorMsg(null);
               setXmlValidationError(null);
             }}
             className="bg-white dark:bg-slate-900 border border-cyan-600/40 dark:border-cyan-500/40 text-slate-900 dark:text-cyan-200 text-xs sm:text-sm rounded-lg px-3.5 py-2 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none cursor-pointer"
           >
-            <option value="html">HTML (Website &amp; App)</option>
-            <option value="blogger">Blogger XML</option>
-            <option value="javascript">JavaScript (.js)</option>
-            <option value="css">CSS Stylesheet (.css)</option>
+            <option value="html">
+              {isBn ? 'HTML (ওয়েবসাইট ও অ্যাপ কোড)' : 'HTML (Website & App)'}
+            </option>
+            <option value="blogger">
+              {isBn ? 'Blogger XML (থিম ও উইজেট)' : 'Blogger XML'}
+            </option>
           </select>
         </div>
       </div>
@@ -204,7 +208,11 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
         <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 space-y-2.5">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
             <History className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-            <span>আপনার ব্রাউজারে সংরক্ষিত সর্বশেষ {backups.length}টি অরিজিনাল ব্যাকআপ:</span>
+            <span>
+              {isBn
+                ? `আপনার ব্রাউজারে সংরক্ষিত সর্বশেষ ${backups.length}টি অরিজিনাল ব্যাকআপ:`
+                : `Last ${backups.length} original backup(s) saved in this browser:`}
+            </span>
           </div>
           <div className="flex flex-wrap gap-2">
             {backups.map((entry) => (
@@ -236,7 +244,7 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
         <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs sm:text-sm flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h5 className="font-semibold">Restoration Issue</h5>
+            <h5 className="font-semibold">{isBn ? 'রিস্টোর সমস্যা' : 'Restoration Issue'}</h5>
             <p className="leading-relaxed">{errorMsg}</p>
           </div>
         </div>
@@ -245,7 +253,15 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
       {/* 1. Source Input Editor */}
       <div className="w-full flex flex-col space-y-3">
         <CodeEditor
-          title={`Input ${format.toUpperCase()} Code`}
+          title={
+            format === 'html'
+              ? isBn
+                ? 'ইনপুট HTML কোড'
+                : 'Input HTML Code'
+              : isBn
+                ? 'ইনপুট Blogger XML কোড'
+                : 'Input Blogger XML Code'
+          }
           value={sourceCode}
           onChange={setSourceCode}
           placeholder={getPlaceholderText()}
@@ -269,12 +285,12 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
               {isProcessing ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Restoring Code...</span>
+                  <span>{isBn ? 'কোড রিস্টোর হচ্ছে...' : 'Restoring Code...'}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>Restore &amp; Decode</span>
+                  <span>{isBn ? 'রিস্টোর ও ডিকোড করুন' : 'Restore & Decode'}</span>
                 </>
               )}
             </button>
@@ -286,7 +302,7 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
               className="px-5 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-800 dark:text-slate-200 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <AlignLeft className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-              <span>Beautify Code Only</span>
+              <span>{isBn ? 'শুধু কোড সাজান (Beautify)' : 'Beautify Code Only'}</span>
             </button>
           </div>
         </div>
@@ -295,12 +311,14 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
       {/* 3. Output & Report */}
       {restoredCode && (
         <div className="space-y-6">
-          {/* Polite Non-Reversible Lock Notice (only if vault missed + 0 decode passes + 0 reconstructions + strong lock) */}
+          {/* Polite Non-Reversible Lock Notice */}
           {nonReversibleLocked && (
             <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
               <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <span>
-                This code is protected with non-reversible locking and cannot be decoded on this device. Please use your saved Backup file or restore from the browser where it was originally secured.
+                {isBn
+                  ? 'এই কোডটি নন-রিভার্সিবল লকিং দিয়ে সুরক্ষিত থাকায় এই ডিভাইস থেকে ডিকোড করা যাচ্ছে না। অনুগ্রহ করে আপনার সেভ করা ব্যাকআপ ফাইল ব্যবহার করুন অথবা যে ব্রাউজার থেকে এটি সিকিউর করা হয়েছিল সেখান থেকে রিস্টোর করুন।'
+                  : 'This code is protected with non-reversible locking and cannot be decoded on this device. Please use your saved Backup file or restore from the browser where it was originally secured.'}
               </span>
             </div>
           )}
@@ -311,14 +329,20 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
               <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs sm:text-sm flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <div className="font-bold">XML Validation Notice</div>
+                  <div className="font-bold">
+                    {isBn ? 'XML যাচাইকরণ বিজ্ঞপ্তি' : 'XML Validation Notice'}
+                  </div>
                   <p className="font-mono text-xs break-words">{xmlValidationError}</p>
                 </div>
               </div>
             ) : (
               <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-300 text-xs flex items-center gap-2.5 font-medium">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>XML Validation Passed — restored Blogger XML structure is valid and well-formed.</span>
+                <span>
+                  {isBn
+                    ? 'XML Validation Passed — রিস্টোর করা Blogger XML স্ট্রাকচার সম্পূর্ণ সঠিক ও বৈধ।'
+                    : 'XML Validation Passed — restored Blogger XML structure is valid and well-formed.'}
+                </span>
               </div>
             )
           )}
@@ -327,25 +351,39 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
             <div className="rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 p-4 space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Input Size</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {isBn ? 'ইনপুট সাইজ' : 'Input Size'}
+                  </div>
                   <div className="text-lg font-mono font-bold text-slate-900 dark:text-slate-200 tabular-nums">
                     {(stats.originalSize / 1024).toFixed(2)} KB
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Formatted Output</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {isBn ? 'আউটপুট সাইজ' : 'Formatted Output'}
+                  </div>
                   <div className="text-lg font-mono font-bold text-cyan-700 dark:text-cyan-400 tabular-nums">
                     {(stats.restoredSize / 1024).toFixed(2)} KB
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Restored Items</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {isBn ? 'রিস্টোর ফলাফল' : 'Restored Items'}
+                  </div>
                   <div className="text-lg font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                    {stats.vaultRecovered ? 'Exact Vault' : `${stats.itemsDecoded} items`}
+                    {stats.vaultRecovered
+                      ? isBn
+                        ? 'হুবহু ভল্ট'
+                        : 'Exact Vault'
+                      : isBn
+                        ? `${stats.itemsDecoded}টি অংশ`
+                        : `${stats.itemsDecoded} items`}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Duration</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {isBn ? 'সময় লেগেছে' : 'Duration'}
+                  </div>
                   <div className="text-lg font-mono font-bold text-slate-900 dark:text-slate-200 tabular-nums">
                     {stats.durationMs} ms
                   </div>
@@ -354,7 +392,9 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
 
               {notes.length > 0 && (
                 <div className="space-y-1.5 pt-1">
-                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">Operations Applied:</div>
+                  <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    {isBn ? 'সম্পন্ন ধাপসমূহ:' : 'Operations Applied:'}
+                  </div>
                   <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
                     {notes.map((note, idx) => (
                       <li key={idx} className="flex items-start gap-1.5">
@@ -370,10 +410,10 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
 
           <div className="w-full flex flex-col space-y-3">
             <CodeEditor
-              title="Restored & Formatted Output"
+              title={isBn ? 'রিস্টোর ও সাজানো আউটপুট' : 'Restored & Formatted Output'}
               value={restoredCode}
               readOnly={true}
-              placeholder="Formatted output will appear here..."
+              placeholder={isBn ? 'রিস্টোর করা আউটপুট এখানে দেখাবে...' : 'Formatted output will appear here...'}
               format={format}
               showBackupDownload={false}
             />
@@ -382,19 +422,17 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Formatted cleanly</span>
+                  <span>{isBn ? 'পরিচ্ছন্নভাবে সাজানো হয়েছে' : 'Formatted cleanly'}</span>
                 </div>
 
-                {(format === 'html' || format === 'blogger') && (
-                  <button
-                    type="button"
-                    onClick={() => setShowLivePreview(true)}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 border border-emerald-300 dark:border-emerald-700/80 text-emerald-800 dark:text-emerald-300 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Test &amp; Run Restored Output</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowLivePreview(true)}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 border border-emerald-300 dark:border-emerald-700/80 text-emerald-800 dark:text-emerald-300 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>{isBn ? 'রিস্টোর করা আউটপুট চালিয়ে দেখুন' : 'Test & Run Restored Output'}</span>
+                </button>
 
                 <button
                   type="button"
@@ -402,7 +440,9 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
                   className="px-3 py-1.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/80 hover:bg-cyan-100 dark:hover:bg-cyan-900 border border-cyan-300 dark:border-cyan-700/80 text-cyan-800 dark:text-cyan-300 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Download ({getFormatFileInfo(format).extension})</span>
+                  <span>
+                    {isBn ? 'ডাউনলোড' : 'Download'} ({getFormatFileInfo(format).extension})
+                  </span>
                 </button>
               </div>
 
@@ -412,7 +452,7 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
                 className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" />
-                <span>Clear Output</span>
+                <span>{isBn ? 'আউটপুট মুছুন' : 'Clear Output'}</span>
               </button>
             </div>
           </div>
@@ -427,7 +467,7 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
               <div className="flex items-center gap-2">
                 <Play className="w-4 h-4 text-emerald-600 dark:text-emerald-400 fill-current" />
                 <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                  Test &amp; Run Restored Output
+                  {isBn ? 'রিস্টোর করা আউটপুটের লাইভ প্রিভিউ' : 'Test & Run Restored Output'}
                 </h3>
               </div>
               <button
@@ -450,13 +490,17 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
             </div>
 
             <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between">
-              <span>Code runs locally inside an isolated preview frame.</span>
+              <span>
+                {isBn
+                  ? 'কোডটি সম্পূর্ণ নিরাপদ প্রিভিউ ফ্রেমে স্থানীয়ভাবে রান হচ্ছে।'
+                  : 'Code runs locally inside an isolated preview frame.'}
+              </span>
               <button
                 type="button"
                 onClick={() => setShowLivePreview(false)}
                 className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-medium cursor-pointer"
               >
-                Close Preview
+                {isBn ? 'প্রিভিউ বন্ধ করুন' : 'Close Preview'}
               </button>
             </div>
           </div>

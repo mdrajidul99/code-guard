@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Shield, Mail } from 'lucide-react';
 import { ActivePage } from '../types/index.ts';
+import { useLanguage } from '../context/LanguageContext.tsx';
 import codeguardLogo from '../assets/logo.png';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 
 export const Footer: React.FC<Props> = ({ onNavigate }) => {
   const [logoLoadError, setLogoLoadError] = useState(false);
+  const { lang } = useLanguage();
 
   const handleLink = (page: ActivePage) => {
     onNavigate(page);
@@ -39,27 +41,30 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
               <span className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">CodeGuard</span>
             </div>
             <div className="text-xs text-slate-500 dark:text-slate-400">
-              Engineered by <span className="text-slate-800 dark:text-slate-200 font-medium">MRS Engineers BD</span>
+              {lang === 'bn' ? 'নির্মাতা: ' : 'Engineered by '}
+              <span className="text-slate-800 dark:text-slate-200 font-medium">MRS Engineers BD</span>
             </div>
           </div>
 
           {/* Core Tools */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-200">Tools &amp; Utilities</h4>
+            <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-200">
+              {lang === 'bn' ? 'টুলস ও সুবিধা' : 'Tools & Utilities'}
+            </h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <button onClick={() => handleLink('secure')} className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">
-                  Secure Code (HTML &amp; Blogger XML)
+                  {lang === 'bn' ? 'কোড সুরক্ষা (HTML ও Blogger XML)' : 'Secure Code (HTML & Blogger XML)'}
                 </button>
               </li>
               <li>
                 <button onClick={() => handleLink('restore')} className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">
-                  Restore Code (Decode &amp; Beautify)
+                  {lang === 'bn' ? 'কোড রিস্টোর (ডিকোড ও সাজানো)' : 'Restore Code (Decode & Beautify)'}
                 </button>
               </li>
               <li>
                 <button onClick={() => handleLink('how-to-use')} className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">
-                  How to Use Guides
+                  {lang === 'bn' ? 'ব্যবহারবিধি গাইড' : 'How to Use Guides'}
                 </button>
               </li>
             </ul>
@@ -67,21 +72,23 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
 
           {/* Legal & Policy */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-200">Legal &amp; Policy</h4>
+            <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-200">
+              {lang === 'bn' ? 'নীতিমালা ও শর্তাবলী' : 'Legal & Policy'}
+            </h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <button onClick={() => handleLink('privacy')} className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">
-                  Privacy Policy
+                  {lang === 'bn' ? 'প্রাইভেসি পলিসি' : 'Privacy Policy'}
                 </button>
               </li>
               <li>
                 <button onClick={() => handleLink('terms')} className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">
-                  Terms &amp; Conditions
+                  {lang === 'bn' ? 'শর্তাবলী' : 'Terms & Conditions'}
                 </button>
               </li>
               <li>
                 <button onClick={() => handleLink('contact')} className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer">
-                  Developer Contact
+                  {lang === 'bn' ? 'ডেভেলপার যোগাযোগ' : 'Developer Contact'}
                 </button>
               </li>
             </ul>
@@ -89,7 +96,9 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
 
           {/* Contact */}
           <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-200">Connect</h4>
+            <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-200">
+              {lang === 'bn' ? 'যোগাযোগ' : 'Connect'}
+            </h4>
             <div className="space-y-2 text-xs">
               <a
                 href="mailto:mrs.engineers.bd26@gmail.com"
@@ -106,10 +115,12 @@ export const Footer: React.FC<Props> = ({ onNavigate }) => {
         {/* Copyright */}
         <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-900 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
           <div>
-            © {new Date().getFullYear()} CodeGuard. Engineered by MRS Engineers BD. All rights reserved.
+            {lang === 'bn'
+              ? `© ${new Date().getFullYear()} CodeGuard। নির্মাতা: MRS Engineers BD। সর্বস্বত্ব সংরক্ষিত।`
+              : `© ${new Date().getFullYear()} CodeGuard. Engineered by MRS Engineers BD. All rights reserved.`}
           </div>
           <div>
-            100% Client-Side Browser Processing
+            {lang === 'bn' ? '১০০% ব্রাউজার-ভিত্তিক প্রসেসিং' : '100% Client-Side Browser Processing'}
           </div>
         </div>
       </div>

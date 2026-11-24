@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Shield, Moon, Sun, Menu, X } from 'lucide-react';
 import { ActivePage } from '../types/index.ts';
 import { useTheme } from '../context/ThemeContext.tsx';
+import { useLanguage } from '../context/LanguageContext.tsx';
+import { LanguageSwitcher } from './LanguageSwitcher.tsx';
 import codeguardLogo from '../assets/logo.png';
 
 interface Props {
@@ -12,16 +14,26 @@ interface Props {
 
 export const Header: React.FC<Props> = ({ activePage, onNavigate }) => {
   const { theme, toggleTheme } = useTheme();
+  const { lang } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [logoLoadError, setLogoLoadError] = useState(false);
 
-  const navLinks: { id: ActivePage; label: string }[] = [
-    { id: 'home', label: 'Home' },
-    { id: 'secure', label: 'Secure Code' },
-    { id: 'restore', label: 'Restore Code' },
-    { id: 'how-to-use', label: 'How to Use' },
-    { id: 'contact', label: 'Contact' },
-  ];
+  const navLinks: { id: ActivePage; label: string }[] =
+    lang === 'bn'
+      ? [
+          { id: 'home', label: 'হোম' },
+          { id: 'secure', label: 'কোড সুরক্ষা' },
+          { id: 'restore', label: 'কোড রিস্টোর' },
+          { id: 'how-to-use', label: 'ব্যবহারবিধি' },
+          { id: 'contact', label: 'যোগাযোগ' },
+        ]
+      : [
+          { id: 'home', label: 'Home' },
+          { id: 'secure', label: 'Secure Code' },
+          { id: 'restore', label: 'Restore Code' },
+          { id: 'how-to-use', label: 'How to Use' },
+          { id: 'contact', label: 'Contact' },
+        ];
 
   const handleNavClick = (page: ActivePage) => {
     onNavigate(page);
@@ -32,7 +44,7 @@ export const Header: React.FC<Props> = ({ activePage, onNavigate }) => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/90 backdrop-blur-md transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-8">
+        <div className="flex items-center justify-between h-16 gap-4 sm:gap-8">
 
           {/* Zone 1: Brand Wordmark & Logo */}
           <button
@@ -77,11 +89,15 @@ export const Header: React.FC<Props> = ({ activePage, onNavigate }) => {
             })}
           </nav>
 
-          {/* Zone 3: Theme Toggle & Primary Action */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Zone 3: Language Switcher, Theme Toggle & Primary Action */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <div className="hidden lg:block">
+              <LanguageSwitcher compact />
+            </div>
+
             <button
               onClick={toggleTheme}
-              aria-label="Toggle color theme"
+              aria-label={lang === 'bn' ? 'রঙের থিম পরিবর্তন করুন' : 'Toggle color theme'}
               className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -91,7 +107,7 @@ export const Header: React.FC<Props> = ({ activePage, onNavigate }) => {
               onClick={() => handleNavClick('secure')}
               className="hidden sm:inline-flex items-center px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer"
             >
-              Launch Tool
+              {lang === 'bn' ? 'টুল চালু করুন' : 'Launch Tool'}
             </button>
 
             <button
@@ -105,22 +121,28 @@ export const Header: React.FC<Props> = ({ activePage, onNavigate }) => {
         </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
+      {/* Mobile Navigation Menu (Three-Line Drawer) */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 pt-3 pb-5 space-y-1.5">
-          {navLinks.map((link) => (
-            <button
-              key={link.id}
-              onClick={() => handleNavClick(link.id)}
-              className={`w-full text-left px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                activePage === link.id
-                  ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60'
-                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900'
-              }`}
-            >
-              {link.label}
-            </button>
-          ))}
+        <div className="lg:hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 pt-3 pb-5 space-y-2">
+          <div className="pb-2 mb-2 border-b border-slate-200 dark:border-slate-800">
+            <LanguageSwitcher fullWidth />
+          </div>
+
+          <div className="space-y-1.5">
+            {navLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => handleNavClick(link.id)}
+                className={`w-full text-left px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  activePage === link.id
+                    ? 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800/60'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900'
+                }`}
+              >
+                {link.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </header>

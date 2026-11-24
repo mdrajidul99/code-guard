@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { ActivePage } from '../types/index.ts';
+import { useLanguage } from '../context/LanguageContext.tsx';
 
 interface Props {
   currentPage: ActivePage;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const PageBackBar: React.FC<Props> = ({ currentPage, onBack }) => {
+  const { lang } = useLanguage();
   if (currentPage === 'home') return null;
 
   return (
@@ -17,10 +19,10 @@ export const PageBackBar: React.FC<Props> = ({ currentPage, onBack }) => {
         <button
           onClick={onBack}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-cyan-700 dark:text-cyan-300 hover:text-cyan-900 dark:hover:text-white border border-slate-300 dark:border-slate-700/80 text-xs font-medium transition-all shadow-sm group focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 cursor-pointer"
-          title="Go back"
+          title={lang === 'bn' ? 'পেছনে যান' : 'Go back'}
         >
           <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-          <span>Back</span>
+          <span>{lang === 'bn' ? 'পেছনে' : 'Back'}</span>
         </button>
       </div>
     </div>

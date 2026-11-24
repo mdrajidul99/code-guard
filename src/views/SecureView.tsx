@@ -17,6 +17,7 @@ import { saveToVault } from '../utils/vaultStorage.ts';
 import { downloadFile, getFormatFileInfo } from '../utils/download.ts';
 import { CodeEditor } from '../components/CodeEditor.tsx';
 import { DomainTagInput } from '../components/DomainTagInput.tsx';
+import { useLanguage } from '../context/LanguageContext.tsx';
 import {
   ShieldCheck,
   RotateCcw,
@@ -50,7 +51,24 @@ const DEFAULT_SETTINGS: SecuritySettings = {
   antiInspectAndCopy: true,
 };
 
+const STAGE_EN_MAP: Record<string, string> = {
+  'সুরক্ষা ইঞ্জিন চালু হচ্ছে...': 'Starting protection engine...',
+  'ডোমেইন লক সুরক্ষা তৈরি হচ্ছে...': 'Applying Domain Lock shield...',
+  'CSS এনকোড হচ্ছে...': 'Protecting CSS styles...',
+  'CSS ও ডোমেইন লক প্রস্তুত হচ্ছে...': 'Preparing CSS & Domain Lock...',
+  'হেড স্ক্রিপ্ট এনকোড হচ্ছে...': 'Protecting head scripts...',
+  'HTML এনকোড হচ্ছে...': 'Protecting layout HTML...',
+  'HTML এনকোড হচ্ছে (১টি সম্মিলিত স্ক্রিপ্ট)...': 'Protecting layout blocks...',
+  'Scripts এনকোড হচ্ছে...': 'Securing scripts...',
+  'Anti-Inspect ও Anti-Copy সুরক্ষা তৈরি হচ্ছে...': 'Applying Anti-Inspect & Anti-Copy...',
+  'XML ভ্যালিডেশন চেক হচ্ছে...': 'Validating XML structure...',
+  'সম্পন্ন হচ্ছে...': 'Finalizing output...',
+};
+
 export const SecureView: React.FC<SecureViewProps> = () => {
+  const { lang } = useLanguage();
+  const isBn = lang === 'bn';
+
   const [sourceCode, setSourceCode] = useState<string>('');
   const [outputCode, setOutputCode] = useState<string>('');
   const [format, setFormat] = useState<CodeFormat>('html');
@@ -77,6 +95,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
   useEffect(() => {
     setBackups(getStoredBackups());
   }, []);
+
+  const formatProgressStage = (rawStage?: string) => {
+    if (!rawStage) return isBn ? 'আপনার কোড সুরক্ষিত করা হচ্ছে...' : 'Securing your code...';
+    if (isBn) return rawStage;
+    return STAGE_EN_MAP[rawStage] || rawStage;
+  };
 
   const handleLoadSample = (targetFormat?: CodeFormat) => {
     const fmt = targetFormat || format;
@@ -109,10 +133,6 @@ export const SecureView: React.FC<SecureViewProps> = () => {
     setSettings((prev) => ({ ...prev, domainLock: nextTags.join(', ') }));
   };
 
-  /**
-   * Commits any typed (un-entered) domain draft into tags before encoding or previewing
-   * so forgetting to press Enter never loses the typed domain.
-   */
   const commitDraftAndGetSettings = (): SecuritySettings => {
     const draftTokens = domainDraft
       .split(/[\s,;]+/)
@@ -143,7 +163,9 @@ export const SecureView: React.FC<SecureViewProps> = () => {
   const executeSecureCode = async () => {
     if (!sourceCode.trim()) {
       setErrorMsg(
-        `অনুগ্রহ করে প্রথমে আপনার ${format === 'html' ? 'HTML / Website & App' : 'Blogger XML'} কোড ইনপুট বক্সে পেস্ট করুন।`
+        isBn
+          ? `অনুগ্রহ করে প্রথমে আপনার ${format === 'html' ? 'HTML / Website & App' : 'Blogger XML'} কোড ইনপুট বক্সে পেস্ট করুন।`
+          : `Please paste your ${format === 'html' ? 'HTML / Website & App' : 'Blogger XML'} code into the input box first.`
       );
       return;
     }
@@ -155,7 +177,6 @@ export const SecureView: React.FC<SecureViewProps> = () => {
     setIsProcessing(true);
     setProgress({ stage: 'সুরক্ষা ইঞ্জিন চালু হচ্ছে...', percent: 5 });
 
-    // Auto-save original code backup (last 5 entries in localStorage)
     const updatedBackups = saveOriginalBackup(sourceCode, format);
     setBackups(updatedBackups);
 
@@ -240,12 +261,6 @@ export const SecureView: React.FC<SecureViewProps> = () => {
     }
   };
 
-  /**
-   * Smart "Test & Run Output":
-   * If Domain Lock is active, generates an isolated preview build WITHOUT domain lock
-   * so it runs smoothly inside the iframe sandbox without triggering about:blank,
-   * while keeping the actual Copy / Download output 100% domain-locked.
-   */
   const handleOpenLivePreview = async () => {
     if (!outputCode) return;
 
@@ -267,12 +282,18 @@ export const SecureView: React.FC<SecureViewProps> = () => {
 
       setPreviewDoc(previewResult.output);
       setPreviewNotice(
-        `নিরাপদ প্রিভিউ মোড: আপনার আসল Copy/Download করা আউটপুটে Domain Lock (${effectiveSettings.domainLock.trim()}) সম্পূর্ণ সক্রিয় আছে। শুধুমাত্র এই স্যান্ডবক্সে টেস্ট করার জন্য ডোমেইন লক সাময়িকভাবে বাইপাস করা হয়েছে।`
+        isBn
+          ? `নিরাপদ প্রিভিউ মোড: আপনার আসল Copy/Download করা আউটপুটে Domain Lock (${effectiveSettings.domainLock.trim()}) সম্পূর্ণ সক্রিয় আছে। শুধুমাত্র এই স্যান্ডবক্সে টেস্ট করার জন্য ডোমেইন লক সাময়িকভাবে বাইপাস করা হয়েছে।`
+          : `Safe Preview Mode: Domain Lock (${effectiveSettings.domainLock.trim()}) remains 100% active in your Copy/Download output. It is only temporarily bypassed here so you can test inside this sandbox.`
       );
       setShowLivePreview(true);
     } catch {
       setPreviewDoc(outputCode);
-      setPreviewNotice('Domain Lock active — external domain mismatch may blank the frame.');
+      setPreviewNotice(
+        isBn
+          ? 'Domain Lock সক্রিয় রয়েছে — অন্য ডোমেইনের কারণে ফ্রেমটি খালি দেখাতে পারে।'
+          : 'Domain Lock active — external domain mismatch may blank the frame.'
+      );
       setShowLivePreview(true);
     } finally {
       setIsGeneratingPreview(false);
@@ -294,16 +315,24 @@ export const SecureView: React.FC<SecureViewProps> = () => {
 
   const getPlaceholderText = () => {
     if (format === 'html') {
-      return 'Please paste only HTML, Website & App code here...';
+      return isBn
+        ? 'অনুগ্রহ করে এখানে শুধুমাত্র HTML, ওয়েবসাইট ও অ্যাপ কোড পেস্ট করুন...'
+        : 'Please paste only HTML, Website & App code here...';
     }
-    return 'Please paste only Blogger XML theme or widget code here...';
+    return isBn
+      ? 'অনুগ্রহ করে এখানে শুধুমাত্র Blogger XML থিম বা উইজেট কোড পেস্ট করুন...'
+      : 'Please paste only Blogger XML theme or widget code here...';
   };
 
   const getGuidanceBadge = () => {
     if (format === 'html') {
-      return 'HTML Mode: Ready to secure your HTML or Web App code.';
+      return isBn
+        ? 'HTML মোড: আপনার HTML বা ওয়েব অ্যাপ কোড সুরক্ষিত করার জন্য প্রস্তুত।'
+        : 'HTML Mode: Ready to secure your HTML or Web App code.';
     }
-    return 'Blogger XML Mode: Ready to secure your Blogger theme safely.';
+    return isBn
+      ? 'Blogger XML মোড: আপনার ব্লগার থিম নিরাপদে সুরক্ষিত করার জন্য প্রস্তুত।'
+      : 'Blogger XML Mode: Ready to secure your Blogger theme safely.';
   };
 
   return (
@@ -313,10 +342,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
             <ShieldCheck className="w-7 h-7 text-cyan-600 dark:text-cyan-400 shrink-0" />
-            <span>Secure Code Workspace</span>
+            <span>{isBn ? 'কোড সিকিউর ওয়ার্কস্পেস' : 'Secure Code Workspace'}</span>
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl">
-            Paste your code, configure protection options, and secure it instantly in your browser.
+            {isBn
+              ? 'আপনার কোড পেস্ট করুন, সুরক্ষা অপশন বাছাই করুন এবং সরাসরি ব্রাউজারে তাৎক্ষণিক সুরক্ষিত করুন।'
+              : 'Paste your code, configure protection options, and secure it instantly in your browser.'}
           </p>
         </div>
 
@@ -328,11 +359,11 @@ export const SecureView: React.FC<SecureViewProps> = () => {
             className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <History className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-            <span>Backups ({backups.length}/5)</span>
+            <span>{isBn ? `ব্যাকআপ (${backups.length}/5)` : `Backups (${backups.length}/5)`}</span>
           </button>
 
           <label htmlFor="cg-format-select" className="text-xs font-semibold text-slate-700 dark:text-slate-300 shrink-0">
-            Select Format:
+            {isBn ? 'ফরম্যাট নির্বাচন:' : 'Select Format:'}
           </label>
           <select
             id="cg-format-select"
@@ -344,19 +375,27 @@ export const SecureView: React.FC<SecureViewProps> = () => {
             }}
             className="bg-white dark:bg-slate-900 border border-cyan-600/40 dark:border-cyan-500/40 text-slate-900 dark:text-cyan-200 text-xs sm:text-sm rounded-lg px-3.5 py-2 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none cursor-pointer"
           >
-            <option value="html">HTML (Website &amp; App Code)</option>
-            <option value="blogger">Blogger XML (Theme &amp; Widget Code)</option>
+            <option value="html">
+              {isBn ? 'HTML (ওয়েবসাইট ও অ্যাপ কোড)' : 'HTML (Website & App Code)'}
+            </option>
+            <option value="blogger">
+              {isBn ? 'Blogger XML (থিম ও উইজেট কোড)' : 'Blogger XML (Theme & Widget Code)'}
+            </option>
           </select>
         </div>
       </div>
 
-      {/* Stored Original Backups Panel (Last 5 auto-saved in localStorage) */}
+      {/* Stored Original Backups Panel */}
       {showBackups && (
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 space-y-3 shadow-sm">
           <div className="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">
             <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100">
               <History className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-              <span>অটো-সেভড অরিজিনাল ব্যাকআপ (সর্বশেষ ৫টি — শুধু আপনার ব্রাউজারে সংরক্ষিত)</span>
+              <span>
+                {isBn
+                  ? 'অটো-সেভড অরিজিনাল ব্যাকআপ (সর্বশেষ ৫টি — শুধু আপনার ব্রাউজারে সংরক্ষিত)'
+                  : 'Auto-Saved Original Backups (Last 5 — saved privately in your browser)'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               {backups.length > 0 && (
@@ -369,7 +408,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                   className="text-xs text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Trash2 className="w-3 h-3" />
-                  <span>Clear All</span>
+                  <span>{isBn ? 'সব মুছুন' : 'Clear All'}</span>
                 </button>
               )}
               <button
@@ -385,7 +424,9 @@ export const SecureView: React.FC<SecureViewProps> = () => {
 
           {backups.length === 0 ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 py-2">
-              এখনো কোনো ব্যাকআপ সংরক্ষিত হয়নি। Secure Code বাটনে ক্লিক করলেই আপনার মূল কোড স্বয়ংক্রিয়ভাবে এখানে সেভ হবে।
+              {isBn
+                ? 'এখনো কোনো ব্যাকআপ সংরক্ষিত হয়নি। Secure Code বাটনে ক্লিক করলেই আপনার মূল কোড স্বয়ংক্রিয়ভাবে এখানে সেভ হবে।'
+                : 'No backups saved yet. Your original source code will be auto-saved here whenever you click Secure Code.'}
             </p>
           ) : (
             <div className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -413,7 +454,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                       onClick={() => handleRestoreFromBackup(entry)}
                       className="px-2.5 py-1 rounded border border-cyan-600/40 bg-cyan-50 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-200 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 font-medium cursor-pointer"
                     >
-                      Load into Editor
+                      {isBn ? 'এডিটরে লোড করুন' : 'Load into Editor'}
                     </button>
                     <button
                       type="button"
@@ -421,7 +462,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                       className="px-2.5 py-1 rounded border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1 cursor-pointer"
                     >
                       <Download className="w-3 h-3" />
-                      <span>Download</span>
+                      <span>{isBn ? 'ডাউনলোড' : 'Download'}</span>
                     </button>
                   </div>
                 </div>
@@ -442,16 +483,26 @@ export const SecureView: React.FC<SecureViewProps> = () => {
         <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs sm:text-sm flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <h5 className="font-semibold text-rose-950 dark:text-rose-100">Processing Interrupted</h5>
+            <h5 className="font-semibold text-rose-950 dark:text-rose-100">
+              {isBn ? 'প্রসেসিং বাধাগ্রস্ত হয়েছে' : 'Processing Interrupted'}
+            </h5>
             <p className="leading-relaxed">{errorMsg}</p>
           </div>
         </div>
       )}
 
-      {/* 1. Source Code Input Editor (Full Width) */}
+      {/* 1. Source Code Input Editor */}
       <div className="w-full flex flex-col space-y-3">
         <CodeEditor
-          title={format === 'html' ? 'Source HTML / Website & App Code' : 'Source Blogger XML Theme'}
+          title={
+            format === 'html'
+              ? isBn
+                ? 'মূল HTML / ওয়েবসাইট ও অ্যাপ কোড'
+                : 'Source HTML / Website & App Code'
+              : isBn
+                ? 'মূল Blogger XML থিম কোড'
+                : 'Source Blogger XML Theme'
+          }
           value={sourceCode}
           onChange={setSourceCode}
           placeholder={getPlaceholderText()}
@@ -469,11 +520,13 @@ export const SecureView: React.FC<SecureViewProps> = () => {
           <div className="flex items-center gap-2">
             <Cpu className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
             <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-              Security Control Panel
+              {isBn ? 'নিরাপত্তা কন্ট্রোল প্যানেল' : 'Security Control Panel'}
             </h2>
           </div>
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            Advanced Logic Shield &amp; Layout Protection Active
+            {isBn
+              ? 'উন্নত লজিক শিল্ড ও লেআউট সুরক্ষা সক্রিয়'
+              : 'Advanced Logic Shield & Layout Protection Active'}
           </span>
         </div>
 
@@ -482,14 +535,14 @@ export const SecureView: React.FC<SecureViewProps> = () => {
           <div className="lg:col-span-6 space-y-4">
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Protection Strength
+                {isBn ? 'সুরক্ষার মাত্রা (Protection Strength)' : 'Protection Strength'}
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {(
                   [
-                    { id: 'rc4', label: 'Maximum' },
-                    { id: 'base64', label: 'Standard' },
-                    { id: 'none', label: 'Light' },
+                    { id: 'rc4', label: isBn ? 'সর্বোচ্চ' : 'Maximum' },
+                    { id: 'base64', label: isBn ? 'সাধারণ' : 'Standard' },
+                    { id: 'none', label: isBn ? 'হালকা' : 'Light' },
                   ] as Array<{ id: StringArrayEncodingType; label: string }>
                 ).map((opt) => {
                   const active = settings.stringArrayEncoding === opt.id;
@@ -536,10 +589,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               />
               <div className="space-y-0.5">
                 <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  Hide CSS &amp; Static HTML inside JS
+                  {isBn ? 'CSS ও স্ট্যাটিক HTML আড়াল করুন' : 'Hide CSS & Static HTML inside JS'}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  view-source করলে প্লেইন CSS/HTML ডিজাইন দেখা যাবে না।
+                  {isBn
+                    ? 'view-source করলে প্লেইন CSS/HTML ডিজাইন দেখা যাবে না।'
+                    : 'Hides plain CSS & static layout markup from casual view-source.'}
                 </p>
               </div>
             </label>
@@ -555,10 +610,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               />
               <div className="space-y-0.5">
                 <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  Anti-Inspect &amp; Anti-Copy
+                  {isBn ? 'Anti-Inspect ও Anti-Copy' : 'Anti-Inspect & Anti-Copy'}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Right-Click, F12, Ctrl+U/S/P ও কপি ব্লক (ইনপুট ফর্ম সচল থাকবে)।
+                  {isBn
+                    ? 'Right-Click, F12, Ctrl+U/S/P ও কপি ব্লক (ইনপুট ফর্ম সচল থাকবে)।'
+                    : 'Blocks Right-Click, F12, Ctrl+U/S/P & copying (forms remain editable).'}
                 </p>
               </div>
             </label>
@@ -574,10 +631,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               />
               <div className="space-y-0.5">
                 <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  Tamper Protection
+                  {isBn ? 'টেম্পার সুরক্ষা (Tamper Protection)' : 'Tamper Protection'}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  কোড ফরম্যাট বা রিভার্স করার চেষ্টা করলে রান বন্ধ হয়ে যাবে।
+                  {isBn
+                    ? 'কোড ফরম্যাট বা রিভার্স করার চেষ্টা করলে রান বন্ধ হয়ে যাবে।'
+                    : 'Stops execution if someone tampers with or reformats the secured scripts.'}
                 </p>
               </div>
             </label>
@@ -593,10 +652,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               />
               <div className="space-y-0.5">
                 <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                  Disable Console Output
+                  {isBn ? 'কনসোল আউটপুট নিষ্ক্রিয় করুন' : 'Disable Console Output'}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  কনসোলে log/warn/error/debug আউটপুট নিষ্ক্রিয় করে দেয়।
+                  {isBn
+                    ? 'কনসোলে log/warn/error/debug আউটপুট নিষ্ক্রিয় করে দেয়।'
+                    : 'Silences browser console log, warn, error, and debug messages.'}
                 </p>
               </div>
             </label>
@@ -613,10 +674,20 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                 />
                 <div className="space-y-0.5">
                   <div className="text-xs font-semibold text-slate-900 dark:text-cyan-100">
-                    Allow Blogger Preview (<code className="font-mono">www.blogger.com</code>)
+                    {isBn ? (
+                      <>
+                        Blogger Preview অনুমোদন করুন (<code className="font-mono">www.blogger.com</code>)
+                      </>
+                    ) : (
+                      <>
+                        Allow Blogger Preview (<code className="font-mono">www.blogger.com</code>)
+                      </>
+                    )}
                   </div>
                   <p className="text-[11px] text-slate-600 dark:text-cyan-300/80">
-                    Domain Lock চালু থাকলে ব্লগার ড্যাশবোর্ডের থিম/লেআউট প্রিভিউ যেন কাজ করে, সেজন্য স্বয়ংক্রিয়ভাবে www.blogger.com যুক্ত রাখবে।
+                    {isBn
+                      ? 'Domain Lock চালু থাকলে ব্লগার ড্যাশবোর্ডের থিম/লেআউট প্রিভিউ যেন কাজ করে, সেজন্য স্বয়ংক্রিয়ভাবে www.blogger.com যুক্ত রাখবে।'
+                      : 'Automatically includes www.blogger.com when Domain Lock is active so Blogger Dashboard layout/theme previews keep working.'}
                   </p>
                 </div>
               </label>
@@ -624,7 +695,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
           </div>
         </div>
 
-        {/* Action Row + Live Worker Progress Bar */}
+        {/* Action Row + Live Progress Bar */}
         <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-wrap">
             <button
@@ -636,12 +707,12 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               {isProcessing ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>{progress?.stage || 'Securing your code...'}</span>
+                  <span>{formatProgressStage(progress?.stage)}</span>
                 </>
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Secure Code (Encode)</span>
+                  <span>{isBn ? 'কোড সিকিউর করুন (Encode)' : 'Secure Code (Encode)'}</span>
                 </>
               )}
             </button>
@@ -656,7 +727,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                 className="px-4 py-3 rounded-lg border border-amber-400/60 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Download Original Backup</span>
+                <span>{isBn ? 'মূল ব্যাকআপ ডাউনলোড করুন' : 'Download Original Backup'}</span>
               </button>
             )}
           </div>
@@ -664,7 +735,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
           {isProcessing && progress && (
             <div className="w-full sm:w-64 space-y-1">
               <div className="flex items-center justify-between text-[11px] font-medium text-cyan-700 dark:text-cyan-300">
-                <span>{progress.stage}</span>
+                <span>{formatProgressStage(progress.stage)}</span>
                 <span className="font-mono tabular-nums">{progress.percent}%</span>
               </div>
               <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
@@ -687,14 +758,22 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200 text-xs sm:text-sm flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <div className="font-bold">XML Validation Error (ব্লগারে পাবলিশ করার আগে ঠিক করুন)</div>
+                  <div className="font-bold">
+                    {isBn
+                      ? 'XML ভ্যালিডেশন এরর (ব্লগারে পাবলিশ করার আগে ঠিক করুন)'
+                      : 'XML Validation Error (Fix before publishing on Blogger)'}
+                  </div>
                   <p className="font-mono text-xs break-words">{xmlValidationError}</p>
                 </div>
               </div>
             ) : (
               <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-300 text-xs flex items-center gap-2.5 font-medium">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>XML Validation Passed — কোনো অসামঞ্জস্যপূর্ণ ট্যাগ বা স্ট্রাকচার ত্রুটি নেই; ব্লগার থিমে নিরাপদে সেভ করা যাবে।</span>
+                <span>
+                  {isBn
+                    ? 'XML Validation Passed — কোনো অসামঞ্জস্যপূর্ণ ট্যাগ বা স্ট্রাকচার ত্রুটি নেই; ব্লগার থিমে নিরাপদে সেভ করা যাবে।'
+                    : 'XML Validation Passed — no mismatched tags or structural errors; safe to save in Blogger Theme Editor.'}
+                </span>
               </div>
             )
           )}
@@ -703,29 +782,34 @@ export const SecureView: React.FC<SecureViewProps> = () => {
           <div className="p-3.5 rounded-xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/60 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 text-cyan-900 dark:text-cyan-300 font-semibold">
               <ShieldAlert className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-              <span>Active Protections:</span>
+              <span>{isBn ? 'সক্রিয় সুরক্ষাসমূহ:' : 'Active Protections:'}</span>
             </div>
             <div className="flex items-center gap-3 flex-wrap font-mono text-[11px] text-slate-700 dark:text-slate-300">
               <span className="flex items-center gap-1">
                 <Cpu className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                Strength: {settings.stringArrayEncoding === 'rc4' ? 'Maximum' : settings.stringArrayEncoding === 'base64' ? 'Standard' : 'Light'}
+                {isBn ? 'মাত্রা:' : 'Strength:'}{' '}
+                {settings.stringArrayEncoding === 'rc4'
+                  ? isBn ? 'সর্বোচ্চ' : 'Maximum'
+                  : settings.stringArrayEncoding === 'base64'
+                    ? isBn ? 'সাধারণ' : 'Standard'
+                    : isBn ? 'হালকা' : 'Light'}
               </span>
               {stats?.cssHidden && (
                 <span className="flex items-center gap-1">
                   <EyeOff className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                  CSS Protected
+                  {isBn ? 'CSS সুরক্ষিত' : 'CSS Protected'}
                 </span>
               )}
               {stats?.htmlHidden && (
                 <span className="flex items-center gap-1">
                   <EyeOff className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                  Layout Protected
+                  {isBn ? 'লেআউট সুরক্ষিত' : 'Layout Protected'}
                 </span>
               )}
               {stats?.domainLockActive && (
                 <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
                   <Lock className="w-3.5 h-3.5" />
-                  Domain Locked
+                  {isBn ? 'ডোমেইন লকড' : 'Domain Locked'}
                 </span>
               )}
             </div>
@@ -734,7 +818,9 @@ export const SecureView: React.FC<SecureViewProps> = () => {
           {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
               <div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Original Size</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {isBn ? 'মূল সাইজ' : 'Original Size'}
+                </div>
                 <div className="text-lg font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums">
                   {(stats.originalSize / 1024).toFixed(2)} KB
                 </div>
@@ -742,7 +828,9 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               </div>
 
               <div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Secured Size</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {isBn ? 'সুরক্ষিত সাইজ' : 'Secured Size'}
+                </div>
                 <div className="text-lg font-mono font-bold text-cyan-700 dark:text-cyan-400 tabular-nums">
                   {(stats.processedSize / 1024).toFixed(2)} KB
                 </div>
@@ -750,17 +838,24 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               </div>
 
               <div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Protected Blocks</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {isBn ? 'সুরক্ষিত ব্লক' : 'Protected Blocks'}
+                </div>
                 <div className="text-lg font-mono font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">
-                  {stats.scriptsObfuscated} {stats.scriptsObfuscated === 1 ? 'block' : 'blocks'}
+                  {stats.scriptsObfuscated}{' '}
+                  {isBn ? 'টি ব্লক' : stats.scriptsObfuscated === 1 ? 'block' : 'blocks'}
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  {format === 'blogger' ? 'XML Theme Safe' : 'Layout Safe'}
+                  {format === 'blogger'
+                    ? isBn ? 'XML থিম নিরাপদ' : 'XML Theme Safe'
+                    : isBn ? 'লেআউট নিরাপদ' : 'Layout Safe'}
                 </div>
               </div>
 
               <div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Processing Time</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  {isBn ? 'প্রসেসিং সময়' : 'Processing Time'}
+                </div>
                 <div className="text-lg font-mono font-bold text-slate-900 dark:text-slate-100 tabular-nums">
                   {stats.durationMs} ms
                 </div>
@@ -774,10 +869,10 @@ export const SecureView: React.FC<SecureViewProps> = () => {
 
           <div className="w-full flex flex-col space-y-3">
             <CodeEditor
-              title="Secured Output"
+              title={isBn ? 'সুরক্ষিত আউটপুট' : 'Secured Output'}
               value={outputCode}
               readOnly={true}
-              placeholder="Processed output will appear here..."
+              placeholder={isBn ? 'সুরক্ষিত আউটপুট এখানে দেখাবে...' : 'Processed output will appear here...'}
               format={format}
               showBackupDownload={true}
               originalSourceForBackup={sourceCode}
@@ -787,7 +882,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Ready to Deploy</span>
+                  <span>{isBn ? 'ব্যবহারের জন্য প্রস্তুত' : 'Ready to Deploy'}</span>
                 </div>
 
                 <button
@@ -797,7 +892,11 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                   className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-900 border border-emerald-300 dark:border-emerald-700/80 text-emerald-800 dark:text-emerald-300 font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>{isGeneratingPreview ? 'Preparing Sandbox...' : 'Test & Run Output'}</span>
+                  <span>
+                    {isGeneratingPreview
+                      ? isBn ? 'প্রিভিউ প্রস্তুত হচ্ছে...' : 'Preparing Sandbox...'
+                      : isBn ? 'আউটপুট চালিয়ে পরীক্ষা করুন' : 'Test & Run Output'}
+                  </span>
                 </button>
               </div>
 
@@ -807,7 +906,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                 className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3 h-3" />
-                <span>Reset Results</span>
+                <span>{isBn ? 'ফলাফল রিসেট করুন' : 'Reset Results'}</span>
               </button>
             </div>
           </div>
@@ -822,7 +921,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               <div className="flex items-center gap-2">
                 <Play className="w-4 h-4 text-emerald-600 dark:text-emerald-400 fill-current" />
                 <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                  Live Execution Test (Sandbox)
+                  {isBn ? 'লাইভ এক্সিকিউশন টেস্ট (স্যান্ডবক্স)' : 'Live Execution Test (Sandbox)'}
                 </h3>
               </div>
               <button
@@ -851,13 +950,17 @@ export const SecureView: React.FC<SecureViewProps> = () => {
               />
             </div>
             <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80 text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between">
-              <span>Code runs locally inside an isolated sandbox iframe.</span>
+              <span>
+                {isBn
+                  ? 'কোডটি একটি আলাদা নিরাপদ স্যান্ডবক্স ফ্রেমে স্থানীয়ভাবে রান হচ্ছে।'
+                  : 'Code runs locally inside an isolated sandbox iframe.'}
+              </span>
               <button
                 type="button"
                 onClick={() => setShowLivePreview(false)}
                 className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-medium cursor-pointer"
               >
-                Close Preview
+                {isBn ? 'প্রিভিউ বন্ধ করুন' : 'Close Preview'}
               </button>
             </div>
           </div>

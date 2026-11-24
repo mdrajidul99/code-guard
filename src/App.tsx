@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActivePage } from './types/index.ts';
 import { ThemeProvider } from './context/ThemeContext.tsx';
+import { LanguageProvider } from './context/LanguageContext.tsx';
 import { Header } from './components/Header.tsx';
 import { Footer } from './components/Footer.tsx';
 import { PageBackBar } from './components/PageBackBar.tsx';
@@ -96,7 +97,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

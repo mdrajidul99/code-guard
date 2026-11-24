@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { X, Globe } from 'lucide-react';
 import { sanitizeDomainToken } from '../utils/jsHelpers.ts';
+import { useLanguage } from '../context/LanguageContext.tsx';
 
 interface DomainTagInputProps {
   id?: string;
@@ -19,9 +20,16 @@ export const DomainTagInput: React.FC<DomainTagInputProps> = ({
   onChangeTags,
   onChangeDraft,
   autoIncludeBloggerPreview = false,
-  placeholder = 'e.g. mrs-engineersbd.blogspot.com (Enter বা কমা চাপুন)',
+  placeholder,
 }) => {
+  const { lang } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const defaultPlaceholder =
+    placeholder ||
+    (lang === 'bn'
+      ? 'যেমন: mrs-engineersbd.blogspot.com (Enter বা কমা চাপুন)'
+      : 'e.g. mrs-engineersbd.blogspot.com (Press Enter or comma)');
 
   const commitTokens = (rawText: string) => {
     const parts = rawText
@@ -46,7 +54,6 @@ export const DomainTagInput: React.FC<DomainTagInputProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    // If user typed comma or semicolon (or pasted multiple space/comma/newline separated domains), commit completed tokens immediately
     if (/[,;\s]/.test(val)) {
       const endsWithDelimiter = /[,;\s]$/.test(val);
       const rawPieces = val.split(/[\s,;]+/);
@@ -109,7 +116,9 @@ export const DomainTagInput: React.FC<DomainTagInputProps> = ({
         className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300"
       >
         <Globe className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-        <span>Domain Lock (Allowed Domains)</span>
+        <span>
+          {lang === 'bn' ? 'ডোমেইন লক (অনুমোদিত ডোমেইন)' : 'Domain Lock (Allowed Domains)'}
+        </span>
       </label>
 
       <div
@@ -151,16 +160,38 @@ export const DomainTagInput: React.FC<DomainTagInputProps> = ({
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           onPaste={handlePaste}
-          placeholder={tags.length === 0 ? placeholder : 'আরেকটি ডোমেইন লিখুন...'}
+          placeholder={
+            tags.length === 0
+              ? defaultPlaceholder
+              : lang === 'bn'
+                ? 'আরেকটি ডোমেইন লিখুন...'
+                : 'Add another domain...'
+          }
           className="flex-1 min-w-[180px] bg-transparent py-1 px-1 text-xs sm:text-sm font-mono text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
         />
       </div>
 
       <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-        ডোমেইন লিখে <code className="font-mono">Enter</code>, কমা (<code className="font-mono">,</code>), বা বাইরে ক্লিক করলে চিপ/ট্যাগ হিসেবে যুক্ত হবে (<code className="font-mono">https://</code> ও <code className="font-mono">/</code> অটো-ক্লিন হয়)।
+        {lang === 'bn' ? (
+          <>
+            ডোমেইন লিখে <code className="font-mono">Enter</code>, কমা (<code className="font-mono">,</code>), বা বাইরে ক্লিক করলে ট্যাগ হিসেবে যুক্ত হবে (<code className="font-mono">https://</code> ও <code className="font-mono">/</code> অটো-ক্লিন হয়)।
+          </>
+        ) : (
+          <>
+            Type a domain and press <code className="font-mono">Enter</code>, comma (<code className="font-mono">,</code>), or click outside to add as a tag (<code className="font-mono">https://</code> and <code className="font-mono">/</code> are auto-cleaned).
+          </>
+        )}
         {autoIncludeBloggerPreview && tags.length > 0 && !tags.includes('www.blogger.com') && (
           <span className="block text-cyan-700 dark:text-cyan-300 mt-0.5">
-            + Blogger Preview সক্রিয় থাকায় ব্যাকগ্রাউন্ডে <code className="font-mono">www.blogger.com</code> অটোমেটিক অনুমোদিত থাকবে।
+            {lang === 'bn' ? (
+              <>
+                + Blogger Preview সক্রিয় থাকায় ব্যাকগ্রাউন্ডে <code className="font-mono">www.blogger.com</code> অটোমেটিক অনুমোদিত থাকবে।
+              </>
+            ) : (
+              <>
+                + Since Blogger Preview is enabled, <code className="font-mono">www.blogger.com</code> will be allowed automatically in the background.
+              </>
+            )}
           </span>
         )}
       </p>
