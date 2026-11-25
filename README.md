@@ -1,15 +1,15 @@
-# CodeGaurd
+# CodeGuard
 
 > A browser-based code protection, minification, obfuscation, formatting, and supported code restoration utility by **MRS Engineers BD**.
 
-[![Deploy CodeGaurd to GitHub Pages](https://github.com/mdrajidul99/code-guard/actions/workflows/deploy.yml/badge.svg)](https://github.com/mdrajidul99/code-guard/actions/workflows/deploy.yml)
-[![Live Site](https://img.shields.io/badge/Live_Site-GitHub_Pages-0284c7)](https://mdrajidul99.github.io/code-guard/)
+[![Deploy CodeGuard to GitHub Pages](https://github.com/mdrajidul99/code-guard/actions/workflows/deploy.yml/badge.svg)](https://github.com/mdrajidul99/code-guard/actions/workflows/deploy.yml)
+[![Live Site](https://img.shields.io/badge/Live_Site-CodeGuard-0284c7)](https://code-guard.2bd.net/)
 
 ---
 
 ## 1. Project Overview
 
-**CodeGaurd** is an open-source, client-side code utility designed specifically for website owners, frontend engineers, Blogger theme developers, and authors of standalone HTML applications.
+**CodeGuard** is an open-source, client-side code utility designed specifically for website owners, frontend engineers, Blogger theme developers, and authors of standalone HTML applications.
 
 It provides format-aware code processing pipelines for:
 - **HTML Documents**: Whitespace compression, comment removal, inline style and script minification, and self-extracting container encapsulation.
@@ -34,7 +34,7 @@ It provides format-aware code processing pipelines for:
 ## 3. Production Deployment & URLs
 
 - **GitHub Repository**: [https://github.com/mdrajidul99/code-guard](https://github.com/mdrajidul99/code-guard)
-- **Live Production URL**: [https://mdrajidul99.github.io/code-guard/](https://mdrajidul99.github.io/code-guard/)
+- **Live Production URL**: [https://code-guard.2bd.net/](https://code-guard.2bd.net/)
 - **Vite Base Path**: `/code-guard/`
 
 ---
@@ -95,13 +95,13 @@ To enable deployment to GitHub Pages:
 2. Navigate to **Settings** → **Pages** (under Code and automation).
 3. Under **Build and deployment** → **Source**, select **GitHub Actions** (do *not* select "Deploy from a branch").
 4. Push your changes to the `main` branch or manually trigger the workflow from the **Actions** tab using `workflow_dispatch`.
-5. The workflow builds the production bundle and deploys `dist/` directly to `https://mdrajidul99.github.io/code-guard/`.
+5. The workflow builds the production bundle and deploys `dist/` directly to `https://code-guard.2bd.net/`.
 
 ---
 
 ## 6. Honest Code Security Notice
 
-> **CodeGaurd helps make supported source code harder to read and reuse casually. Browser-delivered HTML, CSS, and JavaScript can still be inspected. No client-side transformation guarantees complete secrecy.**
+> **CodeGuard helps make supported source code harder to read and reuse casually. Browser-delivered HTML, CSS, and JavaScript can still be inspected. No client-side transformation guarantees complete secrecy.**
 
 - **Client-Side Reality**: Web browsers must decode and execute HTML, CSS, and JavaScript to render them. Any user with browser Developer Tools can inspect DOM elements and network calls.
 - **Backend Recommendation**: Never embed private API keys, payment secrets, or server database credentials inside client-side files. Sensitive business logic should remain on an authenticated server.
@@ -117,4 +117,4 @@ To enable deployment to GitHub Pages:
 
 ---
 
-© 2026 CodeGaurd. Engineered with integrity by MRS Engineers BD.
+© 2026 CodeGuard. Engineered with integrity by MRS Engineers BD.

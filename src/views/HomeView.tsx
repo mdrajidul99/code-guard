@@ -8,6 +8,9 @@ import {
   ShieldCheck,
   Lock,
   Cpu,
+  Globe,
+  QrCode,
+  ExternalLink,
 } from 'lucide-react';
 import { ActivePage } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
@@ -300,6 +303,46 @@ export const HomeView: React.FC<Props> = ({ onNavigate }) => {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* About CodeGuard / MRS Engineers BD */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+          <div className="space-y-2 max-w-xl">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+              {isBn ? 'MRS Engineers BD সম্পর্কে' : 'About CodeGuard & MRS Engineers BD'}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+              {isBn
+                ? 'CodeGuard হলো MRS Engineers BD-এর একটি অফিশিয়াল ও ১০০% ক্লায়েন্ট-সাইড (প্রাইভেসি-ফার্স্ট) ডেভেলপার টুল। আপনার সব কোড সরাসরি নিজের ব্রাউজারেই প্রসেস হয়।'
+                : 'CodeGuard is an official, 100% client-side (privacy-first) developer tool developed and maintained by MRS Engineers BD. Everything executes securely inside your own browser.'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <a
+              href="https://mrs-engineersbd.blogspot.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2.5 rounded-lg border border-cyan-600/40 dark:border-cyan-500/40 bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 text-cyan-800 dark:text-cyan-200 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+            >
+              <Globe className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+              <span>{isBn ? 'অফিশিয়াল ওয়েবসাইট' : 'Official Website'}</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </a>
+
+            <a
+              href="https://qr-code-tools.2bd.net/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+            >
+              <QrCode className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+              <span>QR Code Tools</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </a>
+          </div>
         </div>
       </section>
     </div>

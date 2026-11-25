@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, MessageSquare, Send, CheckCircle2, Info } from 'lucide-react';
+import { Mail, MessageSquare, Send, CheckCircle2, Info, Globe, QrCode, ExternalLink } from 'lucide-react';
 import { ActivePage } from '../types/index.ts';
 import { useLanguage } from '../context/LanguageContext.tsx';
 
@@ -42,10 +42,10 @@ export const ContactView: React.FC<ContactViewProps> = () => {
                 {isBn ? 'নির্মাতা প্রতিষ্ঠান' : 'Engineering Entity'}
               </div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">MRS Engineers BD</h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 {isBn
-                  ? 'ক্লায়েন্ট-সাইড সিকিউরিটি টুলস, ওয়েব অ্যাপ ইউটিলিটি এবং থিম অপটিমাইজেশন প্রযুক্তিতে বিশেষজ্ঞ।'
-                  : 'Specialized in client-side security tooling, browser utilities, and template optimization architectures.'}
+                  ? 'CodeGuard হলো MRS Engineers BD-এর একটি অফিশিয়াল ও ১০০% ক্লায়েন্ট-সাইড (প্রাইভেসি-ফার্স্ট) ডেভেলপার টুল, যা সম্পূর্ণভাবে ব্রাউজারে নিরাপদে কাজ করে।'
+                  : 'CodeGuard is an official, 100% client-side (privacy-first) developer tool by MRS Engineers BD, engineered for safe local browser execution.'}
               </p>
             </div>
 
@@ -61,6 +61,34 @@ export const ContactView: React.FC<ContactViewProps> = () => {
                   <Mail className="w-4 h-4 shrink-0" />
                   <span className="break-all">{email}</span>
                 </a>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800/60 space-y-2">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {isBn ? 'অফিশিয়াল প্ল্যাটফর্ম ও টুলস' : 'Official Platforms & Tools'}
+                </div>
+                <div className="flex flex-col gap-2 text-xs">
+                  <a
+                    href="https://mrs-engineersbd.blogspot.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-200 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                    <span>{isBn ? 'অফিশিয়াল ওয়েবসাইট ও অ্যাপ হাব' : 'Official Website & App Hub'}</span>
+                    <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />
+                  </a>
+                  <a
+                    href="https://qr-code-tools.2bd.net/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-200 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                    <span>QR Code Tools</span>
+                    <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />
+                  </a>
+                </div>
               </div>
             </div>
           </div>
