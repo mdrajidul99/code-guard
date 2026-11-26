@@ -34,6 +34,9 @@ import {
   Download,
   Trash2,
   Cpu,
+  Globe,
+  Search,
+  Shield,
 } from 'lucide-react';
 
 interface SecureViewProps {
@@ -49,11 +52,16 @@ const DEFAULT_SETTINGS: SecuritySettings = {
   allowBloggerPreview: true,
   hideCssAndHtmlInJs: true,
   antiInspectAndCopy: true,
+  seoSafeMode: false,
+  antiMirrorAndWebView: false,
+  antiIframe: false,
 };
 
 const STAGE_EN_MAP: Record<string, string> = {
   'সুরক্ষা ইঞ্জিন চালু হচ্ছে...': 'Starting protection engine...',
   'ডোমেইন লক সুরক্ষা তৈরি হচ্ছে...': 'Applying Domain Lock shield...',
+  'Anti-Iframe সুরক্ষা যুক্ত হচ্ছে...': 'Applying Anti-Iframe protection...',
+  'Anti-Mirror ও WebView গার্ড যুক্ত হচ্ছে...': 'Applying Anti-Mirror & WebView guard...',
   'CSS এনকোড হচ্ছে...': 'Protecting CSS styles...',
   'CSS ও ডোমেইন লক প্রস্তুত হচ্ছে...': 'Preparing CSS & Domain Lock...',
   'হেড স্ক্রিপ্ট এনকোড হচ্ছে...': 'Protecting head scripts...',
@@ -81,6 +89,11 @@ export const SecureView: React.FC<SecureViewProps> = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [xmlValidationError, setXmlValidationError] = useState<string | null>(null);
   const [stats, setStats] = useState<ProcessingStats | null>(null);
+  const [appliedShields, setAppliedShields] = useState<{
+    seoSafeMode: boolean;
+    antiMirrorAndWebView: boolean;
+    antiIframe: boolean;
+  } | null>(null);
 
   // Backups
   const [backups, setBackups] = useState<BackupEntry[]>([]);
@@ -113,6 +126,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
     setSourceCode('');
     setOutputCode('');
     setStats(null);
+    setAppliedShields(null);
     setErrorMsg(null);
     setXmlValidationError(null);
     setProgress(null);
@@ -122,6 +136,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
   const handleReset = () => {
     setOutputCode('');
     setStats(null);
+    setAppliedShields(null);
     setErrorMsg(null);
     setXmlValidationError(null);
     setProgress(null);
@@ -204,6 +219,11 @@ export const SecureView: React.FC<SecureViewProps> = () => {
         });
 
         setOutputCode(res.output);
+        setAppliedShields({
+          seoSafeMode: effectiveSettings.seoSafeMode,
+          antiMirrorAndWebView: effectiveSettings.antiMirrorAndWebView,
+          antiIframe: effectiveSettings.antiIframe,
+        });
         setStats({
           originalSize: originalBytes,
           processedSize: processedBytes,
@@ -238,6 +258,11 @@ export const SecureView: React.FC<SecureViewProps> = () => {
 
         setOutputCode(res.output);
         setXmlValidationError(res.xmlValidationError);
+        setAppliedShields({
+          seoSafeMode: effectiveSettings.seoSafeMode,
+          antiMirrorAndWebView: effectiveSettings.antiMirrorAndWebView,
+          antiIframe: effectiveSettings.antiIframe,
+        });
         setStats({
           originalSize: originalBytes,
           processedSize: processedBytes,
@@ -256,6 +281,7 @@ export const SecureView: React.FC<SecureViewProps> = () => {
       setErrorMsg(msg);
       setOutputCode('');
       setStats(null);
+      setAppliedShields(null);
     } finally {
       setIsProcessing(false);
     }
@@ -266,12 +292,22 @@ export const SecureView: React.FC<SecureViewProps> = () => {
 
     const effectiveSettings = commitDraftAndGetSettings();
     const hasDomainLock = Boolean(stats?.domainLockActive || effectiveSettings.domainLock.trim().length > 0);
-    if (!hasDomainLock) {
+    const hasMirrorGuard = effectiveSettings.antiMirrorAndWebView;
+    const hasIframeGuard = effectiveSettings.antiIframe;
+    const needsPreviewBypass = hasDomainLock || hasMirrorGuard || hasIframeGuard;
+
+    if (!needsPreviewBypass) {
       setPreviewDoc(outputCode);
       setPreviewNotice(null);
       setShowLivePreview(true);
       return;
     }
+
+    const bypassedLabels: string[] = [];
+    if (hasDomainLock) bypassedLabels.push(`Domain Lock (${effectiveSettings.domainLock.trim()})`);
+    if (hasMirrorGuard) bypassedLabels.push('Anti-Mirror & WebView Guard');
+    if (hasIframeGuard) bypassedLabels.push('Anti-Iframe Protection');
+    const summaryLabel = bypassedLabels.join(', ');
 
     setIsGeneratingPreview(true);
     try {
@@ -283,16 +319,16 @@ export const SecureView: React.FC<SecureViewProps> = () => {
       setPreviewDoc(previewResult.output);
       setPreviewNotice(
         isBn
-          ? `নিরাপদ প্রিভিউ মোড: আপনার আসল Copy/Download করা আউটপুটে Domain Lock (${effectiveSettings.domainLock.trim()}) সম্পূর্ণ সক্রিয় আছে। শুধুমাত্র এই স্যান্ডবক্সে টেস্ট করার জন্য ডোমেইন লক সাময়িকভাবে বাইপাস করা হয়েছে।`
-          : `Safe Preview Mode: Domain Lock (${effectiveSettings.domainLock.trim()}) remains 100% active in your Copy/Download output. It is only temporarily bypassed here so you can test inside this sandbox.`
+          ? `নিরাপদ প্রিভিউ মোড: আপনার আসল Copy/Download করা আউটপুটে ${summaryLabel} সম্পূর্ণ সক্রিয় আছে। শুধুমাত্র এই স্যান্ডবক্স iframe-এ টেস্ট করার জন্য সেগুলো সাময়িকভাবে বাইপাস করা হয়েছে।`
+          : `Safe Preview Mode: ${summaryLabel} remain 100% active in your Copy/Download output. They are only temporarily bypassed here so you can test inside this sandbox iframe.`
       );
       setShowLivePreview(true);
     } catch {
       setPreviewDoc(outputCode);
       setPreviewNotice(
         isBn
-          ? 'Domain Lock সক্রিয় রয়েছে — অন্য ডোমেইনের কারণে ফ্রেমটি খালি দেখাতে পারে।'
-          : 'Domain Lock active — external domain mismatch may blank the frame.'
+          ? `${summaryLabel} সক্রিয় রয়েছে — স্যান্ডবক্স iframe পরিবেশের কারণে ফ্রেমটি ব্লক বা খালি দেখাতে পারে।`
+          : `${summaryLabel} active — sandbox iframe restrictions may blank or block the preview frame.`
       );
       setShowLivePreview(true);
     } finally {
@@ -578,23 +614,34 @@ export const SecureView: React.FC<SecureViewProps> = () => {
 
           {/* Right: Protection Toggles */}
           <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 cursor-pointer hover:border-cyan-500/40 transition-colors">
+            <label
+              className={`flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 transition-colors ${
+                settings.seoSafeMode
+                  ? 'opacity-60 cursor-not-allowed'
+                  : 'cursor-pointer hover:border-cyan-500/40'
+              }`}
+            >
               <input
                 type="checkbox"
-                checked={settings.hideCssAndHtmlInJs}
+                checked={!settings.seoSafeMode && settings.hideCssAndHtmlInJs}
+                disabled={settings.seoSafeMode}
                 onChange={(e) =>
                   setSettings((prev) => ({ ...prev, hideCssAndHtmlInJs: e.target.checked }))
                 }
-                className="mt-0.5 w-4 h-4 rounded accent-cyan-600 cursor-pointer"
+                className="mt-0.5 w-4 h-4 rounded accent-cyan-600 cursor-pointer disabled:cursor-not-allowed"
               />
               <div className="space-y-0.5">
                 <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
                   {isBn ? 'CSS ও স্ট্যাটিক HTML আড়াল করুন' : 'Hide CSS & Static HTML inside JS'}
                 </div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {isBn
-                    ? 'view-source করলে প্লেইন CSS/HTML ডিজাইন দেখা যাবে না।'
-                    : 'Hides plain CSS & static layout markup from casual view-source.'}
+                  {settings.seoSafeMode
+                    ? isBn
+                      ? 'SEO-Safe Mode চালু থাকায় HTML/CSS প্লেইন রাখা হচ্ছে।'
+                      : 'Disabled while SEO-Safe Mode keeps HTML/CSS public.'
+                    : isBn
+                      ? 'view-source করলে প্লেইন CSS/HTML ডিজাইন দেখা যাবে না।'
+                      : 'Hides plain CSS & static layout markup from casual view-source.'}
                 </p>
               </div>
             </label>
@@ -658,6 +705,73 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                   {isBn
                     ? 'কনসোলে log/warn/error/debug আউটপুট নিষ্ক্রিয় করে দেয়।'
                     : 'Silences browser console log, warn, error, and debug messages.'}
+                </p>
+              </div>
+            </label>
+
+            <label className="sm:col-span-2 flex items-start gap-3 p-3 rounded-lg border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/70 dark:bg-emerald-950/25 cursor-pointer hover:border-emerald-500/50 transition-colors">
+              <input
+                type="checkbox"
+                checked={settings.seoSafeMode}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, seoSafeMode: e.target.checked }))
+                }
+                className="mt-0.5 w-4 h-4 rounded accent-emerald-600 cursor-pointer"
+              />
+              <div className="space-y-0.5">
+                <div className="text-xs font-semibold text-slate-900 dark:text-emerald-100">
+                  {isBn
+                    ? 'SEO-Safe Mode (HTML/CSS পাবলিক রেখে শুধু JS সুরক্ষিত রাখুন)'
+                    : 'SEO-Safe Mode (Keep HTML/CSS public & secure JS only)'}
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-emerald-300/80">
+                  {isBn
+                    ? 'Googlebot ও AdSense-এর জন্য <meta>, JSON-LD, <b:skin>, হেডার ও ফুটার প্লেইন রাখবে; শুধুমাত্র কার্যকরী <script> ও module JS এনকোড করবে।'
+                    : 'Keeps <meta>, JSON-LD, <b:skin>, header & footer plain for Googlebot/AdSense while obfuscating executable <script> & module JS only.'}
+                </p>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 cursor-pointer hover:border-cyan-500/40 transition-colors">
+              <input
+                type="checkbox"
+                checked={settings.antiMirrorAndWebView}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, antiMirrorAndWebView: e.target.checked }))
+                }
+                className="mt-0.5 w-4 h-4 rounded accent-cyan-600 cursor-pointer"
+              />
+              <div className="space-y-0.5">
+                <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  {isBn
+                    ? 'Anti-Mirror & Anti-WebView Guard (PrismCopy / HTTrack / অফলাইন ক্লোন প্রতিরোধ)'
+                    : 'Anti-Mirror & Anti-WebView Guard (Block PrismCopy / HTTrack / Offline Clones)'}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {isBn
+                    ? '_inline/_external মিরর, file:/content: প্রোটোকল ও অফলাইন/স্পুফড WebView ব্লক করবে (অনলাইন Social ব্রাউজার সচল থাকবে)।'
+                    : 'Blocks _inline/_external mirrors, file:/content: protocols & spoofed offline WebViews (online social in-app browsers preserved).'}
+                </p>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 cursor-pointer hover:border-cyan-500/40 transition-colors">
+              <input
+                type="checkbox"
+                checked={settings.antiIframe}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, antiIframe: e.target.checked }))
+                }
+                className="mt-0.5 w-4 h-4 rounded accent-cyan-600 cursor-pointer"
+              />
+              <div className="space-y-0.5">
+                <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                  {isBn ? 'Anti-Iframe Protection' : 'Anti-Iframe Protection'}
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {isBn
+                    ? 'অননুমোদিত সাইটে <iframe> এম্বেড বন্ধ করবে (Domain Lock ও Blogger প্রিভিউ অনুমোদিত থাকবে)।'
+                    : 'Blocks unauthorized <iframe> embedding while allowing Domain Lock & Blogger preview.'}
                 </p>
               </div>
             </label>
@@ -810,6 +924,24 @@ export const SecureView: React.FC<SecureViewProps> = () => {
                 <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
                   <Lock className="w-3.5 h-3.5" />
                   {isBn ? 'ডোমেইন লকড' : 'Domain Locked'}
+                </span>
+              )}
+              {appliedShields?.seoSafeMode && (
+                <span className="flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
+                  <Search className="w-3.5 h-3.5" />
+                  {isBn ? 'SEO-Safe Mode' : 'SEO-Safe Mode'}
+                </span>
+              )}
+              {appliedShields?.antiMirrorAndWebView && (
+                <span className="flex items-center gap-1 text-cyan-700 dark:text-cyan-300">
+                  <Globe className="w-3.5 h-3.5" />
+                  {isBn ? 'Anti-Mirror & WebView' : 'Anti-Mirror & WebView'}
+                </span>
+              )}
+              {appliedShields?.antiIframe && (
+                <span className="flex items-center gap-1 text-cyan-700 dark:text-cyan-300">
+                  <Shield className="w-3.5 h-3.5" />
+                  {isBn ? 'Anti-Iframe' : 'Anti-Iframe'}
                 </span>
               )}
             </div>

@@ -22,6 +22,16 @@ self.onmessage = function (event) {
   var capturedWrites = [];
   var domLoadedCallbacks = [];
 
+  var currentGuardDetected = false;
+  var currentAntiInspectStyle = false;
+  var currentAntiInspectEvents = 0;
+
+  function isAntiInspectCss(cssText) {
+    var trimmed = String(cssText || '').trim();
+    if (!trimmed || trimmed.length >= 480) return false;
+    return /user-select\s*:\s*none/i.test(trimmed);
+  }
+
   function createVirtualElement(tagName, explicitId) {
     var _innerHtml = '';
     var _textContent = '';
@@ -41,7 +51,11 @@ self.onmessage = function (event) {
         if (child.tagName === 'STYLE') {
           var cssText = child.textContent || child.innerHTML || '';
           if (cssText && cssText.trim()) {
-            capturedStyles.push(cssText);
+            if (isAntiInspectCss(cssText)) {
+              currentAntiInspectStyle = true;
+            } else {
+              capturedStyles.push(cssText);
+            }
           }
         }
         return child;
@@ -61,11 +75,18 @@ self.onmessage = function (event) {
       get: function () { return _innerHtml; },
       set: function (val) {
         _innerHtml = String(val == null ? '' : val);
+        if ((el.tagName === 'HTML' || el.tagName === 'BODY') && _innerHtml.trim() === '') {
+          currentGuardDetected = true;
+        }
         if (el.id) {
           capturedMounts[el.id] = _innerHtml;
         }
         if (el.tagName === 'STYLE' && _innerHtml.trim()) {
-          capturedStyles.push(_innerHtml);
+          if (isAntiInspectCss(_innerHtml)) {
+            currentAntiInspectStyle = true;
+          } else {
+            capturedStyles.push(_innerHtml);
+          }
         }
       }
     });
@@ -75,7 +96,11 @@ self.onmessage = function (event) {
       set: function (val) {
         _textContent = String(val == null ? '' : val);
         if (el.tagName === 'STYLE' && _textContent.trim()) {
-          capturedStyles.push(_textContent);
+          if (isAntiInspectCss(_textContent)) {
+            currentAntiInspectStyle = true;
+          } else {
+            capturedStyles.push(_textContent);
+          }
         }
       }
     });
@@ -100,6 +125,8 @@ self.onmessage = function (event) {
     head: virtualHead,
     body: virtualBody,
     documentElement: virtualDocEl,
+    referrer: '',
+    scripts: [],
     createElement: function (tag) {
       return createVirtualElement(tag, '');
     },
@@ -135,6 +162,8 @@ self.onmessage = function (event) {
     addEventListener: function (ev, cb) {
       if (ev === 'DOMContentLoaded' && typeof cb === 'function') {
         domLoadedCallbacks.push(cb);
+      } else if (/^(?:contextmenu|copy|cut|selectstart|keydown)$/i.test(String(ev || ''))) {
+        currentAntiInspectEvents++;
       }
     },
     removeEventListener: function () {}
@@ -149,14 +178,29 @@ self.onmessage = function (event) {
     pathname: '/',
     search: '',
     hash: '',
-    replace: function () {},
+    ancestorOrigins: ['https://cg-sandbox-top.invalid'],
+    replace: function (url) {
+      if (/about:blank/i.test(String(url || ''))) {
+        currentGuardDetected = true;
+      }
+    },
     assign: function () {},
     reload: function () {}
   };
 
+  var _cgAmInitVal = false;
+  var _cgBlockedVal = false;
+
   var virtualWindow = {
     document: virtualDocument,
     location: virtualLocation,
+    URL: typeof URL !== 'undefined' ? URL : self.URL,
+    performance: {
+      getEntriesByType: function () { return []; }
+    },
+    stop: function () {
+      currentGuardDetected = true;
+    },
     addEventListener: function (ev, cb) {
       if ((ev === 'DOMContentLoaded' || ev === 'load') && typeof cb === 'function') {
         domLoadedCallbacks.push(cb);
@@ -183,12 +227,60 @@ self.onmessage = function (event) {
     escape: escape,
     console: { log: function () {}, warn: function () {}, error: function () {}, info: function () {}, debug: function () {} }
   };
+  Object.defineProperty(virtualWindow, '__cgAmInit', {
+    get: function () { return _cgAmInitVal; },
+    set: function (v) {
+      _cgAmInitVal = Boolean(v);
+      if (v) currentGuardDetected = true;
+    },
+    configurable: true
+  });
+  Object.defineProperty(virtualWindow, '__cgBlocked', {
+    get: function () { return _cgBlockedVal; },
+    set: function (v) {
+      _cgBlockedVal = Boolean(v);
+      if (v) currentGuardDetected = true;
+    },
+    configurable: true
+  });
   virtualWindow.window = virtualWindow;
   virtualWindow.self = virtualWindow;
-  virtualWindow.top = virtualWindow;
-  virtualWindow.parent = virtualWindow;
+  virtualWindow.top = {
+    location: {
+      href: 'https://cg-sandbox-top.invalid/',
+      replace: function () {
+        currentGuardDetected = true;
+      }
+    }
+  };
+  virtualWindow.parent = virtualWindow.top;
+
+  try {
+    if (!self.console) {
+      self.console = virtualWindow.console;
+    }
+  } catch (e) {}
+
+  var hasGlobalDocShim = false;
+  try {
+    if (!self.document) {
+      Object.defineProperty(self, 'document', {
+        value: { domain: 'localhost', location: { hostname: 'localhost' } },
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
+      hasGlobalDocShim = true;
+    }
+  } catch (e) {
+    try {
+      self.document = { domain: 'localhost', location: { hostname: 'localhost' } };
+      hasGlobalDocShim = true;
+    } catch (e2) {}
+  }
 
   var executedScriptIndexes = [];
+  var guardScriptIndexes = [];
 
   for (var idx = 0; idx < scripts.length; idx++) {
     var code = scripts[idx];
@@ -197,6 +289,19 @@ self.onmessage = function (event) {
     var prevStyles = capturedStyles.length;
     var prevWrites = capturedWrites.length;
     var prevMountKeys = JSON.stringify(capturedMounts);
+
+    currentGuardDetected = false;
+    currentAntiInspectStyle = false;
+    currentAntiInspectEvents = 0;
+    _cgAmInitVal = false;
+    _cgBlockedVal = false;
+
+    if (hasGlobalDocShim && self.document) {
+      try {
+        self.document.domain = 'localhost';
+        self.document.location = { hostname: 'localhost' };
+      } catch (e) {}
+    }
 
     try {
       var runner = new Function(
@@ -233,8 +338,14 @@ self.onmessage = function (event) {
       capturedWrites.length > prevWrites ||
       JSON.stringify(capturedMounts) !== prevMountKeys;
 
+    var isGuardScript =
+      currentGuardDetected ||
+      (currentAntiInspectStyle && currentAntiInspectEvents >= 2);
+
     if (producedSomething) {
       executedScriptIndexes.push(idx);
+    } else if (isGuardScript) {
+      guardScriptIndexes.push(idx);
     }
   }
 
@@ -243,7 +354,7 @@ self.onmessage = function (event) {
   for (var s = 0; s < capturedStyles.length; s++) {
     var css = String(capturedStyles[s] || '').trim();
     if (!css) continue;
-    if (/user-select\s*:\s*none/i.test(css) && css.length < 320) continue;
+    if (isAntiInspectCss(css)) continue;
     if (filteredStyles.indexOf(css) === -1) {
       filteredStyles.push(css);
     }
@@ -255,6 +366,7 @@ self.onmessage = function (event) {
     styles: filteredStyles,
     mounts: capturedMounts,
     writes: capturedWrites,
-    injectorScriptIndexes: executedScriptIndexes
+    injectorScriptIndexes: executedScriptIndexes,
+    guardScriptIndexes: guardScriptIndexes
   });
 };

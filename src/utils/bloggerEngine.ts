@@ -1,7 +1,9 @@
 import { ProcessingProgress, SecuritySettings } from '../types/index.ts';
 import { minifyBloggerSkinWithDirectives, minifyCss } from './cssEngine.ts';
 import {
+  buildAntiIframeScript,
   buildAntiInspectScript,
+  buildAntiMirrorAndWebViewScript,
   buildDomainLockGuardScript,
   buildObfuscatorOptions,
   parseDomainList,
@@ -424,6 +426,7 @@ export async function processBloggerXml(
   const domains = parseDomainList(settings.domainLock, 'blogger', settings.allowBloggerPreview);
   const obfOptions = buildObfuscatorOptions(settings, domains, forPreview);
   const domainLockActive = !forPreview && domains.length > 0;
+  const hideCssAndHtml = !settings.seoSafeMode && settings.hideCssAndHtmlInJs;
 
   let working = trimmed;
   let scriptsObfuscated = 0;
@@ -432,7 +435,7 @@ export async function processBloggerXml(
 
   const obfuscateSafe = (code: string) => obfuscateInWorker(code, obfOptions);
 
-  // --- STEP 1: Combine Domain Lock Guard + <b:skin> / <style> CSS Injector into ONE <head> script ---
+  // --- STEP 1: Combine Domain Lock + Anti-Iframe + Anti-Mirror/WebView + <b:skin>/<style> CSS Injector into ONE <head> script ---
   onProgress?.({ stage: 'CSS ও ডোমেইন লক প্রস্তুত হচ্ছে...', percent: 18 });
   const headJsParts: string[] = [];
 
@@ -440,46 +443,59 @@ export async function processBloggerXml(
     headJsParts.push(buildDomainLockGuardScript(domains));
   }
 
-  const skinRegex = /(<b:skin\b[^>]*>\s*<!\[CDATA\[)([\s\S]*?)(\]\]>\s*<\/b:skin>)/gi;
-  const skinMatches: Array<{ match: string; open: string; inner: string; close: string }> = [];
-  let sm: RegExpExecArray | null;
-  while ((sm = skinRegex.exec(working)) !== null) {
-    skinMatches.push({ match: sm[0], open: sm[1], inner: sm[2], close: sm[3] });
+  if (!forPreview && settings.antiIframe) {
+    const iframeDomains = settings.allowBloggerPreview
+      ? Array.from(new Set([...domains, 'www.blogger.com', '.blogger.com']))
+      : domains;
+    headJsParts.push(buildAntiIframeScript(iframeDomains));
+  }
+
+  if (!forPreview && settings.antiMirrorAndWebView) {
+    headJsParts.push(buildAntiMirrorAndWebViewScript());
   }
 
   const allHiddenCssChunks: string[] = [];
-  for (const item of skinMatches) {
-    const hasBloggerVarsOrIf = /<Variable\b|<Group\b|<b:/i.test(item.inner);
-    if (hasBloggerVarsOrIf) {
-      const safeMinified = minifyBloggerSkinWithDirectives(item.inner);
-      working = working.replace(item.match, () => `${item.open}\n${safeMinified}\n${item.close}`);
-    } else if (settings.hideCssAndHtmlInJs) {
-      const minified = minifyCss(item.inner);
-      if (minified) {
-        allHiddenCssChunks.push(minified);
-        working = working.replace(item.match, () => `${item.open}/*Secured by CodeGuard*/${item.close}`);
-        cssHidden = true;
-      }
-    } else {
-      const minified = minifyCss(item.inner);
-      working = working.replace(item.match, () => `${item.open}\n${minified}\n${item.close}`);
+  if (!settings.seoSafeMode) {
+    const skinRegex = /(<b:skin\b[^>]*>\s*<!\[CDATA\[)([\s\S]*?)(\]\]>\s*<\/b:skin>)/gi;
+    const skinMatches: Array<{ match: string; open: string; inner: string; close: string }> = [];
+    let sm: RegExpExecArray | null;
+    while ((sm = skinRegex.exec(working)) !== null) {
+      skinMatches.push({ match: sm[0], open: sm[1], inner: sm[2], close: sm[3] });
     }
-  }
 
-  if (settings.hideCssAndHtmlInJs) {
-    const headMatch = /(<head\b[^>]*>)([\s\S]*?)(<\/head>)/i.exec(working);
-    if (headMatch) {
-      const headInner = headMatch[2].replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (full, _o, cssInner) => {
-        if (/<b:|<\/b:|<data:|<expr:/i.test(cssInner)) return full;
-        const min = minifyCss(cssInner);
-        if (min) allHiddenCssChunks.push(min);
-        cssHidden = true;
-        return '';
-      });
-      working =
-        working.slice(0, headMatch.index) +
-        `${headMatch[1]}${headInner}${headMatch[3]}` +
-        working.slice(headMatch.index + headMatch[0].length);
+    for (const item of skinMatches) {
+      const hasBloggerVarsOrIf = /<Variable\b|<Group\b|<b:/i.test(item.inner);
+      if (hasBloggerVarsOrIf) {
+        const safeMinified = minifyBloggerSkinWithDirectives(item.inner);
+        working = working.replace(item.match, () => `${item.open}\n${safeMinified}\n${item.close}`);
+      } else if (hideCssAndHtml) {
+        const minified = minifyCss(item.inner);
+        if (minified) {
+          allHiddenCssChunks.push(minified);
+          working = working.replace(item.match, () => `${item.open}/*Secured by CodeGuard*/${item.close}`);
+          cssHidden = true;
+        }
+      } else {
+        const minified = minifyCss(item.inner);
+        working = working.replace(item.match, () => `${item.open}\n${minified}\n${item.close}`);
+      }
+    }
+
+    if (hideCssAndHtml) {
+      const headMatch = /(<head\b[^>]*>)([\s\S]*?)(<\/head>)/i.exec(working);
+      if (headMatch) {
+        const headInner = headMatch[2].replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (full, _o, cssInner) => {
+          if (/<b:|<\/b:|<data:|<expr:/i.test(cssInner)) return full;
+          const min = minifyCss(cssInner);
+          if (min) allHiddenCssChunks.push(min);
+          cssHidden = true;
+          return '';
+        });
+        working =
+          working.slice(0, headMatch.index) +
+          `${headMatch[1]}${headInner}${headMatch[3]}` +
+          working.slice(headMatch.index + headMatch[0].length);
+      }
     }
   }
 
@@ -642,7 +658,7 @@ function findTrailingScriptsStartIndex(bodyInner: string): number {
 
   // --- STEP 3: Hide Static HTML Blocks (Header, Footer, Modals, Static Homepage Sections) -> ONE combined UI Mount script ---
   let combinedUiMountXml = '';
-  if (settings.hideCssAndHtmlInJs) {
+  if (hideCssAndHtml) {
     const bodyMatch = /(<body\b[^>]*>)([\s\S]*?)(<\/body>)/i.exec(working);
     if (bodyMatch) {
       onProgress?.({ stage: 'HTML এনকোড হচ্ছে (১টি সম্মিলিত স্ক্রিপ্ট)...', percent: 70 });

@@ -124,6 +124,193 @@ export function buildDomainLockGuardScript(domains: string[]): string {
 }
 
 /**
+ * Builds an Anti-Iframe / Frame-Busting protection script.
+ * Blocks embedding inside unauthorized <iframe> hosts while allowing whitelisted
+ * Domain Lock / Blogger preview domains (such as www.blogger.com).
+ */
+export function buildAntiIframeScript(allowedDomains: string[]): string {
+  const serialized = JSON.stringify(allowedDomains);
+  return `(function(){
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  try {
+    if (window.top !== window.self) {
+      var allowed = ${serialized};
+      var isHostOk = function(h) {
+        if (!h) return false;
+        h = String(h).toLowerCase();
+        for (var i = 0; i < allowed.length; i++) {
+          var d = String(allowed[i] || '').toLowerCase();
+          if (!d) continue;
+          if (d.charAt(0) === '.') {
+            var bare = d.slice(1);
+            if (h === bare || h.slice(-d.length) === d) return true;
+          } else if (h === d || h.endsWith('.' + d)) {
+            return true;
+          }
+        }
+        return false;
+      };
+      var ok = false;
+      try {
+        var ao = window.location && window.location.ancestorOrigins;
+        if (ao && ao.length > 0) {
+          ok = true;
+          for (var j = 0; j < ao.length; j++) {
+            var ah = '';
+            try { ah = new URL(ao[j]).hostname; } catch (err) {}
+            if (!isHostOk(ah)) { ok = false; break; }
+          }
+        }
+      } catch (e) {}
+      if (!ok && (!window.location || !window.location.ancestorOrigins || window.location.ancestorOrigins.length === 0)) {
+        if (document.referrer) {
+          try {
+            var refHost = new URL(document.referrer).hostname;
+            ok = isHostOk(refHost);
+          } catch (e) {}
+        }
+      }
+      if (!ok) {
+        try { window.__cgBlocked = true; } catch (e) {}
+        try { window.top.location.replace(window.location.href); } catch (e) {}
+        try {
+          if (document.body) document.body.innerHTML = '';
+          if (document.documentElement) document.documentElement.innerHTML = '';
+        } catch (e) {}
+      }
+    }
+  } catch (e) {}
+})();`;
+}
+
+/**
+ * Builds multi-layer Anti-Mirror, Anti-Scraper, and Anti-WebView Interception guard:
+ * - Detects HTTrack / PrismCopy mirror paths (_inline/, _external/, _meta/, _mirror) and illegal local protocols
+ * - Detects offline & spoofed Android WebView shouldInterceptRequest copies via navigator.onLine,
+ *   live HEAD/GET server Date header verification, and performance resource checks
+ * - Safely preserves legitimate online Social In-App Browsers (Facebook, Messenger, Instagram, WhatsApp, Telegram)
+ */
+export function buildAntiMirrorAndWebViewScript(): string {
+  return `(function(){
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (window.__cgAmInit) return;
+  window.__cgAmInit = true;
+  var ua = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '';
+  var isSocialInApp = /FBAN|FBAV|FB_IAB|Messenger|Instagram|WhatsApp|Telegram/i.test(ua);
+  var mirrorRe = /(?:^|\\/)(?:_inline|_external|_meta|_mirror)(?:\\/|$|\\?|#)|(?:_inline\\/|_external\\/|_meta\\/|_mirror)/i;
+  var badProtoRe = /^(?:file|content|blob|data|capacitor|ionic):/i;
+  var badAssetProtoRe = /^(?:file|content|blob|capacitor|ionic):/i;
+  var badDataRe = /^data:(?!image\\/(?:png|jpeg|jpg|gif|webp|svg\\+xml|x-icon|vnd\\.microsoft\\.icon))/i;
+  var badHostRe = /appassets\\.androidplatform\\.net/i;
+  function _halt() {
+    try { window.__cgBlocked = true; } catch (e) {}
+    try {
+      if (document.body) document.body.innerHTML = '';
+      if (document.documentElement) document.documentElement.innerHTML = '';
+    } catch (e) {}
+    try { if (typeof window.stop === 'function') window.stop(); } catch (e) {}
+  }
+  function _isBadUrl(val, allowImageData) {
+    if (!val) return false;
+    var s = String(val).trim();
+    if (!s) return false;
+    if (mirrorRe.test(s) || badHostRe.test(s)) return true;
+    if (allowImageData) {
+      return badAssetProtoRe.test(s) || badDataRe.test(s);
+    }
+    return badProtoRe.test(s);
+  }
+  function _scanDom() {
+    try {
+      var href = window.location ? window.location.href : '';
+      if (_isBadUrl(href, false)) { _halt(); return true; }
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) { _halt(); return true; }
+      var scripts = document.scripts || [];
+      for (var i = 0; i < scripts.length; i++) {
+        var sSrc = scripts[i].src || (scripts[i].getAttribute ? scripts[i].getAttribute('src') : '') || '';
+        if (_isBadUrl(sSrc, false)) { _halt(); return true; }
+      }
+      var assets = document.querySelectorAll ? document.querySelectorAll('link[href], img[src]') : [];
+      for (var j = 0; j < assets.length; j++) {
+        var el = assets[j];
+        var aVal = el.getAttribute ? (el.getAttribute('href') || el.getAttribute('src') || '') : '';
+        if (_isBadUrl(aVal, true)) { _halt(); return true; }
+      }
+      if (window.performance && typeof window.performance.getEntriesByType === 'function') {
+        var entries = window.performance.getEntriesByType('resource') || [];
+        for (var k = 0; k < entries.length; k++) {
+          var eName = entries[k] && entries[k].name ? entries[k].name : '';
+          if (_isBadUrl(eName, true)) { _halt(); return true; }
+        }
+      }
+    } catch (e) {}
+    return false;
+  }
+  if (_scanDom()) return;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { _scanDom(); });
+  }
+  setTimeout(function() { _scanDom(); }, 600);
+  var proto = (window.location && window.location.protocol) ? window.location.protocol : '';
+  var isHttp = /^https?:$/i.test(proto);
+  if (isSocialInApp && isHttp && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+    return;
+  }
+  if (!isHttp || typeof fetch !== 'function') return;
+  function _probe(method, timeoutMs) {
+    var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function() { try { ctrl.abort(); } catch (e) {} }, timeoutMs) : null;
+    var url = (window.location && window.location.pathname ? window.location.pathname : '/') + '?_cg_chk=' + Date.now();
+    var opts = { method: method, cache: 'no-store', credentials: 'same-origin' };
+    if (ctrl) opts.signal = ctrl.signal;
+    return fetch(url, opts).then(function(res) {
+      if (timer) clearTimeout(timer);
+      return { res: res, url: url };
+    }, function(err) {
+      if (timer) clearTimeout(timer);
+      throw err;
+    });
+  }
+  function _validateResp(pack) {
+    var res = pack.res;
+    if (!res || res.type === 'opaque' || res.status === 0 || res.status >= 500) {
+      return false;
+    }
+    var dt = res.headers && typeof res.headers.get === 'function' ? res.headers.get('date') : '';
+    if (!dt || isNaN(Date.parse(dt))) {
+      return false;
+    }
+    return true;
+  }
+  function _runCheck(attempt) {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) { _halt(); return; }
+    _probe(attempt === 0 ? 'HEAD' : 'GET', 8500).then(function(pack) {
+      if (pack.res && (pack.res.status === 405 || pack.res.status === 501 || pack.res.status === 403)) {
+        return _probe('GET', 8500).then(function(getPack) {
+          if (!_validateResp(getPack)) { _halt(); }
+        });
+      }
+      if (!_validateResp(pack)) { _halt(); }
+    })['catch'](function(err) {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) { _halt(); return; }
+      if (err && err.name === 'AbortError') {
+        if (attempt === 0) {
+          setTimeout(function() { _runCheck(1); }, 1000);
+        }
+        return;
+      }
+      if (attempt === 0) {
+        setTimeout(function() { _runCheck(1); }, 1200);
+      } else {
+        _halt();
+      }
+    });
+  }
+  _runCheck(0);
+})();`;
+}
+
+/**
  * Builds the Anti-Inspect & Anti-Copy protection script.
  * Blocks Right-Click, F12, Ctrl+U, Ctrl+S, Ctrl+P, Ctrl+Shift+I/J/C/K,
  * and copy/selection EXCEPT inside INPUT, TEXTAREA, SELECT, or contenteditable elements

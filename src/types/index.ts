@@ -10,6 +10,9 @@ export interface SecuritySettings {
   allowBloggerPreview: boolean;
   hideCssAndHtmlInJs: boolean;
   antiInspectAndCopy: boolean;
+  seoSafeMode: boolean;
+  antiMirrorAndWebView: boolean;
+  antiIframe: boolean;
 }
 
 export interface ProcessingProgress {

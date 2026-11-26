@@ -1,7 +1,9 @@
 import { ProcessingProgress, SecuritySettings } from '../types/index.ts';
 import { minifyCss } from './cssEngine.ts';
 import {
+  buildAntiIframeScript,
   buildAntiInspectScript,
+  buildAntiMirrorAndWebViewScript,
   buildDomainLockGuardScript,
   buildObfuscatorOptions,
   parseDomainList,
@@ -73,27 +75,40 @@ export async function processHtmlDocument(
   const domains = parseDomainList(settings.domainLock, 'html', false);
   const obfOptions = buildObfuscatorOptions(settings, domains, forPreview);
   const domainLockActive = !forPreview && domains.length > 0;
+  const hideCssAndHtml = !settings.seoSafeMode && settings.hideCssAndHtmlInJs;
 
   let working = trimmed;
   let scriptsObfuscated = 0;
   let cssHidden = false;
   let htmlHidden = false;
 
-  // Strip non-essential HTML comments while preserving IE conditional comments
-  working = working.replace(/<!--(?!\s*(?:\[if|#))[\s\S]*?-->/g, '');
+  // Strip non-essential HTML comments while preserving IE conditional comments (skipped in SEO-Safe Mode)
+  if (!settings.seoSafeMode) {
+    working = working.replace(/<!--(?!\s*(?:\[if|#))[\s\S]*?-->/g, '');
+  }
 
   const hasHeadTag = /<head\b[^>]*>[\s\S]*?<\/head>/i.test(working);
   const hasBodyTag = /<body\b[^>]*>([\s\S]*?)<\/body>/i.test(working);
 
-  // --- STEP 1 & 2: Domain Lock Guard + Hide CSS (<style> blocks) in one combined <head> script ---
+  // --- STEP 1 & 2: Domain Lock + Anti-Iframe + Anti-Mirror/WebView + Hide CSS (<style> blocks) in one combined <head> script ---
   const headScriptParts: string[] = [];
   if (domainLockActive) {
     onProgress?.({ stage: 'ডোমেইন লক সুরক্ষা তৈরি হচ্ছে...', percent: 12 });
     headScriptParts.push(buildDomainLockGuardScript(domains));
   }
 
+  if (!forPreview && settings.antiIframe) {
+    onProgress?.({ stage: 'Anti-Iframe সুরক্ষা যুক্ত হচ্ছে...', percent: 16 });
+    headScriptParts.push(buildAntiIframeScript(domains));
+  }
+
+  if (!forPreview && settings.antiMirrorAndWebView) {
+    onProgress?.({ stage: 'Anti-Mirror ও WebView গার্ড যুক্ত হচ্ছে...', percent: 20 });
+    headScriptParts.push(buildAntiMirrorAndWebViewScript());
+  }
+
   const collectedCssParts: string[] = [];
-  if (settings.hideCssAndHtmlInJs) {
+  if (hideCssAndHtml) {
     onProgress?.({ stage: 'CSS এনকোড হচ্ছে...', percent: 25 });
     working = working.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, (_match, cssInner) => {
       const minified = minifyCss(cssInner);
@@ -102,13 +117,13 @@ export async function processHtmlDocument(
       }
       return '';
     });
-  } else {
+  } else if (!settings.seoSafeMode) {
     working = working.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (_m, open, cssInner, close) => {
       return `${open}${minifyCss(cssInner)}${close}`;
     });
   }
 
-  if (settings.hideCssAndHtmlInJs && collectedCssParts.length > 0) {
+  if (hideCssAndHtml && collectedCssParts.length > 0) {
     const mergedCss = collectedCssParts.join('\n');
     const cssScript = `(function(){var s=document.createElement('style');s.textContent=${JSON.stringify(mergedCss)};(document.head||document.documentElement).appendChild(s);})();`;
     headScriptParts.push(cssScript);
@@ -200,7 +215,7 @@ export async function processHtmlDocument(
           const isSelf = selfAttrs !== undefined;
           const idx = bodyScripts.length;
           bodyScripts.push(classifyScript(fullMatch, isSelf ? selfAttrs : (attrs || ''), content || '', isSelf));
-          return settings.hideCssAndHtmlInJs ? '' : `__CG_BODY_SCRIPT_${idx}__`;
+          return hideCssAndHtml ? '' : `__CG_BODY_SCRIPT_${idx}__`;
         }
       );
 
@@ -211,7 +226,7 @@ export async function processHtmlDocument(
       }
 
       let finalBodyInner = '';
-      if (settings.hideCssAndHtmlInJs) {
+      if (hideCssAndHtml) {
         onProgress?.({ stage: 'HTML এনকোড হচ্ছে...', percent: 55 });
         const cleanStaticHtml = bodyInner.replace(/\s+/g, ' ').trim();
         let htmlMountPart = '';
@@ -247,7 +262,7 @@ export async function processHtmlDocument(
         const isSelf = selfAttrs !== undefined;
         const idx = fragmentScripts.length;
         fragmentScripts.push(classifyScript(fullMatch, isSelf ? selfAttrs : (attrs || ''), content || '', isSelf));
-        return settings.hideCssAndHtmlInJs ? '' : `__CG_FRAG_SCRIPT_${idx}__`;
+        return hideCssAndHtml ? '' : `__CG_FRAG_SCRIPT_${idx}__`;
       }
     );
 
@@ -257,7 +272,7 @@ export async function processHtmlDocument(
       processedFragScripts.push(await processSingleScript(fragmentScripts[i]));
     }
 
-    if (settings.hideCssAndHtmlInJs) {
+    if (hideCssAndHtml) {
       onProgress?.({ stage: 'HTML এনকোড হচ্ছে...', percent: 55 });
       const cleanFragmentHtml = fragmentHtml.replace(/\s+/g, ' ').trim();
       let mountPart = '';

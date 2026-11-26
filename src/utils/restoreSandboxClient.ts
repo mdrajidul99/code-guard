@@ -3,6 +3,7 @@ export interface SandboxReconstructResult {
   mounts: Record<string, string>;
   writes: string[];
   injectorScriptIndexes: number[];
+  guardScriptIndexes: number[];
 }
 
 const SANDBOX_TIMEOUT_MS = 3000;
@@ -10,7 +11,7 @@ const SANDBOX_TIMEOUT_MS = 3000;
 /**
  * Runs candidate inline scripts inside a dedicated, network-free Virtual DOM Web Worker
  * with a strict 3-second timeout to safely extract injected CSS (<style>),
- * DOM mount HTML (.innerHTML), and document.write() content.
+ * DOM mount HTML (.innerHTML), document.write() content, and CodeGuard runtime guards.
  */
 export function runRestoreSandboxWorker(
   scripts: string[],
@@ -21,6 +22,7 @@ export function runRestoreSandboxWorker(
     mounts: {},
     writes: [],
     injectorScriptIndexes: [],
+    guardScriptIndexes: [],
   };
 
   if (typeof Worker === 'undefined' || scripts.length === 0) {
@@ -63,6 +65,9 @@ export function runRestoreSandboxWorker(
             writes: Array.isArray(data.writes) ? data.writes : [],
             injectorScriptIndexes: Array.isArray(data.injectorScriptIndexes)
               ? data.injectorScriptIndexes
+              : [],
+            guardScriptIndexes: Array.isArray(data.guardScriptIndexes)
+              ? data.guardScriptIndexes
               : [],
           });
         } else {

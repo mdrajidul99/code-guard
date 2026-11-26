@@ -173,8 +173,8 @@ export const RestoreView: React.FC<RestoreViewProps> = () => {
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl">
             {isBn
-              ? 'এনকোড করা স্ক্রিপ্ট ডিকোড করুন এবং আপনার HTML ও Blogger XML কোড পরিচ্ছন্নভাবে রিস্টোর বা সাজিয়ে নিন।'
-              : 'Decode encoded scripts and cleanly restore or format your HTML Website, App, and Blogger XML code.'}
+              ? 'Standard ও SEO-Safe মোডে এনকোড করা স্ক্রিপ্ট ও গার্ড (Anti-Iframe, Anti-Mirror/WebView, Domain Lock, Anti-Inspect) পরিচ্ছন্নভাবে ডিকোড ও রিস্টোর করুন।'
+              : 'Decode and restore Standard & SEO-Safe secured HTML or Blogger XML while cleanly removing Anti-Iframe, Anti-Mirror/WebView, Domain Lock & Anti-Inspect guards.'}
           </p>
         </div>
 

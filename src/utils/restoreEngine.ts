@@ -486,7 +486,7 @@ function decodeWrappersAndBase64(code: string): { result: string; count: number 
  */
 export function deescapeHexStrings(code: string): { result: string; count: number } {
   let count = 0;
-  const result = code.replace(/\\x([0-9a-fA-F]{2})/g, (match, hex) => {
+  const result = code.replace(/\\x([0-9a-fA-F]{2})/g, (match, hex, offset, full) => {
     try {
       const codePoint = parseInt(hex, 16);
       if (
@@ -496,6 +496,13 @@ export function deescapeHexStrings(code: string): { result: string; count: numbe
         codePoint !== 39 &&
         codePoint !== 92
       ) {
+        // Keep XML/HTML boundary escapes `]\x5d>` and `<\x2fscript` intact
+        if (codePoint === 93 && full[offset - 1] === ']' && full[offset + 4] === '>') {
+          return match;
+        }
+        if (codePoint === 47 && full[offset - 1] === '<' && /^script/i.test(full.slice(offset + 4, offset + 10))) {
+          return match;
+        }
         count++;
         return String.fromCharCode(codePoint);
       }
@@ -590,8 +597,17 @@ function shouldSkipSandboxScript(attrs: string, content: string): boolean {
   return !content.trim();
 }
 
+function isPlainCodeGuardGuardScript(code: string): boolean {
+  if (!code || !code.trim()) return false;
+  if (/__cgAmInit|_cg_chk|appassets\\?\.androidplatform\\?\.net/i.test(code)) return true;
+  if (/__cgBlocked/.test(code) && /ancestorOrigins|window\.top\s*!==\s*window\.self/.test(code)) return true;
+  if (/documentElement\.innerHTML\s*=\s*['"]['"]/.test(code) && /about:blank/.test(code)) return true;
+  if (/user-select\s*:\s*none/i.test(code) && /contextmenu/.test(code) && /keydown/.test(code)) return true;
+  return false;
+}
+
 /**
- * Pure regex static fallback for CSS/DOM mount reconstruction when Web Worker is unavailable
+ * Pure regex static fallback for CSS/DOM mount & guard reconstruction when Web Worker is unavailable
  * (e.g. headless environments or strict worker failure).
  */
 function staticReconstructInjectors(scripts: string[], mountIds: string[]) {
@@ -599,6 +615,7 @@ function staticReconstructInjectors(scripts: string[], mountIds: string[]) {
   const mounts: Record<string, string> = {};
   const writes: string[] = [];
   const injectorScriptIndexes: number[] = [];
+  const guardScriptIndexes: number[] = [];
 
   for (let idx = 0; idx < scripts.length; idx++) {
     const code = decodeUtf8HelperCalls(scripts[idx]).result;
@@ -609,7 +626,7 @@ function staticReconstructInjectors(scripts: string[], mountIds: string[]) {
     if (styleMatch) {
       const lit = styleMatch[1];
       const css = unescapeJsQuotedString(lit.slice(1, -1), lit[0]);
-      if (css && !/^\s*\*\s*\{\s*-webkit-user-select:\s*none/i.test(css)) {
+      if (css && !(/user-select\s*:\s*none/i.test(css) && css.length < 480)) {
         styles.push(css);
         hit = true;
       }
@@ -649,28 +666,31 @@ function staticReconstructInjectors(scripts: string[], mountIds: string[]) {
 
     if (hit) {
       injectorScriptIndexes.push(idx);
+    } else if (isPlainCodeGuardGuardScript(code)) {
+      guardScriptIndexes.push(idx);
     }
   }
 
-  return { styles, mounts, writes, injectorScriptIndexes };
+  return { styles, mounts, writes, injectorScriptIndexes, guardScriptIndexes };
 }
 
 /**
  * Stage 3: Runs non-module inline scripts inside the network-free sandbox worker (3s timeout)
- * to extract injected CSS (<style>) and DOM mount HTML (.innerHTML), and places them cleanly
- * back into the HTML or Blogger XML structure while leaving interactive & module scripts intact.
+ * to extract injected CSS (<style>) and DOM mount HTML (.innerHTML), strip CodeGuard runtime
+ * protection guards (Anti-Iframe, Anti-Mirror/WebView, Domain Lock, Anti-Inspect), and place
+ * styles & markup cleanly back into HTML or Blogger XML while keeping interactive & module scripts intact.
  */
 async function reconstructCssAndDomMounts(
   source: string,
   format: TargetFormat,
   indentSize: number
-): Promise<{ code: string; reconstructed: boolean; itemsRecovered: number }> {
+): Promise<{ code: string; reconstructed: boolean; itemsRecovered: number; guardsRemoved: number }> {
   if (format !== 'html' && format !== 'blogger') {
-    return { code: source, reconstructed: false, itemsRecovered: 0 };
+    return { code: source, reconstructed: false, itemsRecovered: 0, guardsRemoved: 0 };
   }
 
   if (!/<script\b/i.test(source)) {
-    return { code: source, reconstructed: false, itemsRecovered: 0 };
+    return { code: source, reconstructed: false, itemsRecovered: 0, guardsRemoved: 0 };
   }
 
   // Extract all id='...' / id="..." present in document
@@ -716,7 +736,7 @@ async function reconstructCssAndDomMounts(
   );
 
   if (candidateScripts.length === 0) {
-    return { code: source, reconstructed: false, itemsRecovered: 0 };
+    return { code: source, reconstructed: false, itemsRecovered: 0, guardsRemoved: 0 };
   }
 
   let sandboxRes =
@@ -728,10 +748,15 @@ async function reconstructCssAndDomMounts(
   if (
     sandboxRes.styles.length === 0 &&
     Object.keys(sandboxRes.mounts).length === 0 &&
-    sandboxRes.writes.length === 0
+    sandboxRes.writes.length === 0 &&
+    sandboxRes.guardScriptIndexes.length === 0
   ) {
     const staticFallback = staticReconstructInjectors(candidateScripts, mountIds);
-    if (staticFallback.styles.length > 0 || Object.keys(staticFallback.mounts).length > 0) {
+    if (
+      staticFallback.styles.length > 0 ||
+      Object.keys(staticFallback.mounts).length > 0 ||
+      staticFallback.guardScriptIndexes.length > 0
+    ) {
       sandboxRes = staticFallback;
     }
   }
@@ -812,8 +837,11 @@ async function reconstructCssAndDomMounts(
     }
   }
 
-  // 3. Restore or remove consumed injector script slots cleanly
+  // 3. Restore or remove consumed injector & guard script slots cleanly
   const injectorSet = new Set(sandboxRes.injectorScriptIndexes);
+  const guardSet = new Set(sandboxRes.guardScriptIndexes || []);
+  let guardsRemoved = 0;
+
   for (const slot of slots) {
     if (slot.candidateIdx !== null && injectorSet.has(slot.candidateIdx)) {
       const js = candidateScripts[slot.candidateIdx] || '';
@@ -829,15 +857,23 @@ async function reconstructCssAndDomMounts(
       } else {
         working = working.replace(slot.token, '');
       }
+    } else if (slot.candidateIdx !== null && guardSet.has(slot.candidateIdx)) {
+      guardsRemoved++;
+      working = working.replace(slot.token, '');
     } else {
       working = working.replace(slot.token, () => slot.rawMatch);
     }
+  }
+
+  if (reconstructed || guardsRemoved > 0) {
+    working = working.replace(/\n{3,}/g, '\n\n');
   }
 
   return {
     code: working.trim(),
     reconstructed,
     itemsRecovered,
+    guardsRemoved,
   };
 }
 
@@ -1057,11 +1093,14 @@ function formatBloggerXmlSafely(xmlInput: string, indentSize: number): string {
       if (isJson) {
         return hold(`${openTag}\n${formattedJs}\n${closeTag}`);
       }
-      return hold(`${openTag}\n//<![CDATA[\n${formattedJs}\n//]]>\n${closeTag}`);
+      const cdataSafeJs = formattedJs
+        .replace(/\]\]>/g, ']\\x5d>')
+        .replace(/<\/script/gi, '<\\x2fscript');
+      return hold(`${openTag}\n//<![CDATA[\n${cdataSafeJs}\n//]]>\n${closeTag}`);
     }
   );
 
-  // Hold comments, <style>, <pre>, <textarea>, <svg>
+  // Hold comments, <style>, <pre>, <textarea>, <svg>, and any remaining CDATA blocks
   working = working.replace(/<!--[\s\S]*?-->/g, (m) => hold(m));
   working = working.replace(/(<(style|pre|textarea|svg)\b[^>]*>)([\s\S]*?)(<\/\2>)/gi, (m, o, tag, inner, c) => {
     if (tag.toLowerCase() === 'style' && !/<b:|<data:|<expr:/i.test(inner)) {
@@ -1074,6 +1113,7 @@ function formatBloggerXmlSafely(xmlInput: string, indentSize: number): string {
     }
     return hold(m);
   });
+  working = working.replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, (m) => hold(m));
 
   let formatted = indentBloggerXmlTokens(working, indentSize);
 
@@ -1222,15 +1262,22 @@ export async function restoreCode(
     }
   }
 
-  // --- STAGE 3: CSS & DOM Mount Injector Reconstructor (Network-Free Sandbox) ---
+  // --- STAGE 3: CSS, DOM Mount & Guard Reconstruction (Network-Free Sandbox) ---
   if (!beautifyOnly && !vaultRecovered && (format === 'html' || format === 'blogger')) {
     const recon = await reconstructCssAndDomMounts(currentCode, format, indentSize);
-    if (recon.reconstructed) {
+    if (recon.reconstructed || recon.guardsRemoved > 0) {
       currentCode = recon.code;
       sandboxReconstructed = true;
-      itemsDecoded += recon.itemsRecovered;
+      itemsDecoded += recon.itemsRecovered + recon.guardsRemoved;
       passesUsed = Math.max(passesUsed, 1);
-      notes.push('Reconstructed embedded styles and layout blocks into clean markup.');
+      if (recon.reconstructed) {
+        notes.push('Reconstructed embedded styles and layout blocks into clean markup.');
+      }
+      if (recon.guardsRemoved > 0) {
+        notes.push(
+          `Removed ${recon.guardsRemoved} CodeGuard runtime protection guard(s) (Anti-Iframe / Anti-Mirror / Domain Lock / Anti-Inspect) cleanly.`
+        );
+      }
     }
   }
 
@@ -1260,6 +1307,12 @@ export async function restoreCode(
     !sandboxReconstructed &&
     itemsDecoded === 0 &&
     detectStrongObfuscation(inputCode);
+
+  if (!beautifyOnly && !vaultRecovered && sandboxReconstructed && detectStrongObfuscation(formattedCode)) {
+    notes.push(
+      'Embedded strongly obfuscated functional <script> blocks were preserved safely; use your Backup or original browser Vault to recover unobfuscated variable names.'
+    );
+  }
 
   const durationMs = Math.round(performance.now() - startTime);
 
